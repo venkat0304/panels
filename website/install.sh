@@ -1,15 +1,15 @@
 #!/bin/sh
 set -eu
 
-REPO="ogulcancelik/herdr"
-BIN="herdr"
-INSTALL_DIR="${HERDR_INSTALL_DIR:-$HOME/.local/bin}"
+REPO="ogulcancelik/panels"
+BIN="panels"
+INSTALL_DIR="${PANELS_INSTALL_DIR:-$HOME/.local/bin}"
 
 main() {
     echo ""
     echo "      ,ww"
-    echo "     wWWWWWWW_)  herdr installer"
-    echo "     \`WWWWWW'    herdr.dev"
+    echo "     wWWWWWWW_)  panels installer"
+    echo "     \`WWWWWW'    panels.dev"
     echo "      II  II"
     echo ""
 
@@ -69,7 +69,7 @@ main() {
     # verify
     if command -v "$BIN" >/dev/null 2>&1; then
         echo ""
-        log "ready. run 'herdr' to get started."
+        log "ready. run 'panels' to get started."
     fi
 
     echo ""

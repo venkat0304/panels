@@ -1,21 +1,21 @@
 # integrations
 
-herdr works without any hook or plugin setup.
+panels works without any hook or plugin setup.
 
 out of the box, it detects supported agents automatically by combining foreground process detection with screen heuristics. that is enough to give you workspace awareness with zero configuration.
 
-when an agent exposes hooks or plugins, the more robust path is to forward semantic state to herdr over the local socket api. the built-in integrations in this document do exactly that.
+when an agent exposes hooks or plugins, the more robust path is to forward semantic state to panels over the local socket api. the built-in integrations in this document do exactly that.
 
-if you want to inspect the exact files herdr installs, they are versioned in this repo:
+if you want to inspect the exact files panels installs, they are versioned in this repo:
 
-- [pi extension](./src/integration/assets/pi/herdr-agent-state.ts)
-- [claude code hook](./src/integration/assets/claude/herdr-agent-state.sh)
-- [codex hook](./src/integration/assets/codex/herdr-agent-state.sh)
-- [opencode plugin](./src/integration/assets/opencode/herdr-agent-state.js)
+- [pi extension](./src/integration/assets/pi/panels-agent-state.ts)
+- [claude code hook](./src/integration/assets/claude/panels-agent-state.sh)
+- [codex hook](./src/integration/assets/codex/panels-agent-state.sh)
+- [opencode plugin](./src/integration/assets/opencode/panels-agent-state.js)
 
-## how herdr uses integrations
+## how panels uses integrations
 
-herdr uses a hybrid model:
+panels uses a hybrid model:
 
 - **process detection** owns pane identity, liveness, and "the process is gone"
 - **agent integrations** report semantic state like `working`, `blocked`, and `idle` over the local socket api when the tool exposes those events
@@ -26,19 +26,19 @@ that means hooks/plugins do **not** become the source of truth for pane ownershi
 ## install commands
 
 ```bash
-herdr integration install pi
-herdr integration install claude
-herdr integration install codex
-herdr integration install opencode
+panels integration install pi
+panels integration install claude
+panels integration install codex
+panels integration install opencode
 ```
 
 ## uninstall commands
 
 ```bash
-herdr integration uninstall pi
-herdr integration uninstall claude
-herdr integration uninstall codex
-herdr integration uninstall opencode
+panels integration uninstall pi
+panels integration uninstall claude
+panels integration uninstall codex
+panels integration uninstall opencode
 ```
 
 ## pi
@@ -46,29 +46,29 @@ herdr integration uninstall opencode
 install:
 
 ```bash
-herdr integration install pi
+panels integration install pi
 ```
 
 this writes the bundled pi extension to:
 
 ```text
-~/.pi/agent/extensions/herdr-agent-state.ts
+~/.pi/agent/extensions/panels-agent-state.ts
 ```
 
-pi is the cleanest integration. it already has an authoritative hook model, so herdr can get direct state reports over the socket api without guessing as much from the terminal.
+pi is the cleanest integration. it already has an authoritative hook model, so panels can get direct state reports over the socket api without guessing as much from the terminal.
 
-bundled source: [`src/integration/assets/pi/herdr-agent-state.ts`](./src/integration/assets/pi/herdr-agent-state.ts)
+bundled source: [`src/integration/assets/pi/panels-agent-state.ts`](./src/integration/assets/pi/panels-agent-state.ts)
 
 uninstall:
 
 ```bash
-herdr integration uninstall pi
+panels integration uninstall pi
 ```
 
 this removes:
 
 ```text
-~/.pi/agent/extensions/herdr-agent-state.ts
+~/.pi/agent/extensions/panels-agent-state.ts
 ```
 
 ## claude code
@@ -76,15 +76,15 @@ this removes:
 install:
 
 ```bash
-herdr integration install claude
+panels integration install claude
 ```
 
 this:
 
-- writes the hook script to `~/.claude/hooks/herdr-agent-state.sh`
+- writes the hook script to `~/.claude/hooks/panels-agent-state.sh`
 - updates `~/.claude/settings.json`
 
-bundled source: [`src/integration/assets/claude/herdr-agent-state.sh`](./src/integration/assets/claude/herdr-agent-state.sh)
+bundled source: [`src/integration/assets/claude/panels-agent-state.sh`](./src/integration/assets/claude/panels-agent-state.sh)
 
 current hook mapping:
 
@@ -99,37 +99,37 @@ current hook mapping:
 
 notes:
 
-- claude code hooks also run inside subagents. herdr treats subagent `working` and `blocked` reports as real pane state.
+- claude code hooks also run inside subagents. panels treats subagent `working` and `blocked` reports as real pane state.
 - subagent stop/release events are converted to `working` by the bundled hook script so a completed subagent does not make the parent claude pane look idle.
 - `PostToolUse` and `PostToolUseFailure` move the pane back to `working` after a permissioned tool call resolves.
 
 uninstall:
 
 ```bash
-herdr integration uninstall claude
+panels integration uninstall claude
 ```
 
 this:
 
-- removes `~/.claude/hooks/herdr-agent-state.sh`
-- removes herdr-owned hook entries from `~/.claude/settings.json`
+- removes `~/.claude/hooks/panels-agent-state.sh`
+- removes panels-owned hook entries from `~/.claude/settings.json`
 
 ## codex
 
 install:
 
 ```bash
-herdr integration install codex
+panels integration install codex
 ```
 
 this:
 
-- writes the hook script to `~/.codex/herdr-agent-state.sh`
+- writes the hook script to `~/.codex/panels-agent-state.sh`
 - updates `~/.codex/hooks.json`
 - ensures `hooks = true` under `[features]` in `~/.codex/config.toml`
 - migrates the deprecated top-level `[features] codex_hooks = true` setting to `hooks = true`
 
-bundled source: [`src/integration/assets/codex/herdr-agent-state.sh`](./src/integration/assets/codex/herdr-agent-state.sh)
+bundled source: [`src/integration/assets/codex/panels-agent-state.sh`](./src/integration/assets/codex/panels-agent-state.sh)
 
 current hook mapping:
 
@@ -140,40 +140,40 @@ current hook mapping:
 
 notes:
 
-- codex does **not** currently expose a permission-specific hook like claude or opencode, so `blocked` still depends on herdr's normal heuristics.
+- codex does **not** currently expose a permission-specific hook like claude or opencode, so `blocked` still depends on panels's normal heuristics.
 - codex currently renders hook lifecycle messages in its own tui, for example `Running SessionStart hook` and `SessionStart hook (completed)`.
-- that noise is an upstream codex limitation, not a herdr-specific issue.
+- that noise is an upstream codex limitation, not a panels-specific issue.
 - codex has a `suppressOutput` field in its hook output schema, but it is currently not effective for suppressing those tui lifecycle lines.
 
 uninstall:
 
 ```bash
-herdr integration uninstall codex
+panels integration uninstall codex
 ```
 
 this:
 
-- removes `~/.codex/herdr-agent-state.sh`
-- removes herdr-owned hook entries from `~/.codex/hooks.json`
+- removes `~/.codex/panels-agent-state.sh`
+- removes panels-owned hook entries from `~/.codex/hooks.json`
 - intentionally leaves `~/.codex/config.toml` alone
 
-that last point is deliberate: herdr does **not** try to guess whether `hooks = true` is still needed for some other codex hook setup.
+that last point is deliberate: panels does **not** try to guess whether `hooks = true` is still needed for some other codex hook setup.
 
 ## opencode
 
 install:
 
 ```bash
-herdr integration install opencode
+panels integration install opencode
 ```
 
 this writes the bundled plugin to:
 
 ```text
-~/.config/opencode/plugins/herdr-agent-state.js
+~/.config/opencode/plugins/panels-agent-state.js
 ```
 
-bundled source: [`src/integration/assets/opencode/herdr-agent-state.js`](./src/integration/assets/opencode/herdr-agent-state.js)
+bundled source: [`src/integration/assets/opencode/panels-agent-state.js`](./src/integration/assets/opencode/panels-agent-state.js)
 
 current plugin mapping:
 
@@ -190,31 +190,31 @@ current plugin mapping:
 notes:
 
 - opencode has the richest event surface of the currently supported integrations.
-- herdr intentionally does **not** guess that `session.deleted` means process exit. process detection still owns liveness and pane identity.
+- panels intentionally does **not** guess that `session.deleted` means process exit. process detection still owns liveness and pane identity.
 
 uninstall:
 
 ```bash
-herdr integration uninstall opencode
+panels integration uninstall opencode
 ```
 
 this removes:
 
 ```text
-~/.config/opencode/plugins/herdr-agent-state.js
+~/.config/opencode/plugins/panels-agent-state.js
 ```
 
 ## known limitations
 
-- these integrations only activate inside herdr-managed panes.
-- if an agent has an incomplete hook surface, herdr falls back to process detection and screen heuristics rather than inventing lease or ttl behavior.
+- these integrations only activate inside panels-managed panes.
+- if an agent has an incomplete hook surface, panels falls back to process detection and screen heuristics rather than inventing lease or ttl behavior.
 - codex currently shows hook lifecycle chatter in its own tui until upstream adds a real silent mode.
 
 ## troubleshooting
 
 if an install command succeeds but you do not see improved state reporting:
 
-1. make sure you launched the agent inside a herdr pane
+1. make sure you launched the agent inside a panels pane
 2. restart the agent session so it picks up the new hook/plugin config
 3. verify the expected config file was written to the path above
-4. remember that unsupported transitions still fall back to herdr's built-in heuristics
+4. remember that unsupported transitions still fall back to panels's built-in heuristics

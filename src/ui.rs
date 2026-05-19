@@ -6,6 +6,7 @@ use ratatui::{
 };
 
 mod dialogs;
+mod files;
 mod keybind_help;
 mod menus;
 mod mobile;
@@ -20,6 +21,9 @@ mod tabs;
 mod widgets;
 
 use self::dialogs::{render_confirm_close_overlay, render_rename_overlay};
+pub(crate) use self::files::{
+    compute_files_rows, files_panel_scroll_metrics, files_panel_scrollbar_rect,
+};
 use self::keybind_help::render_keybind_help_overlay;
 use self::menus::{
     render_context_menu, render_global_launcher_menu, render_navigate_overlay,
@@ -53,8 +57,8 @@ pub(crate) use self::{
         agent_panel_body_rect, agent_panel_entries, agent_panel_scroll_metrics,
         agent_panel_scrollbar_rect, agent_panel_toggle_rect, collapsed_sidebar_sections,
         collapsed_sidebar_toggle_rect, compute_workspace_card_areas, expanded_sidebar_sections,
-        sidebar_section_divider_rect, workspace_drop_indicator_row, workspace_list_rect,
-        workspace_list_scroll_metrics, workspace_list_scrollbar_rect,
+        files_section_divider_rect, sidebar_section_divider_rect, workspace_drop_indicator_row,
+        workspace_list_rect, workspace_list_scroll_metrics, workspace_list_scrollbar_rect,
     },
 };
 pub(crate) use self::{
@@ -166,9 +170,15 @@ fn compute_view_internal(
         .workspace_scroll
         .min(app.workspaces.len().saturating_sub(1));
     if !app.sidebar_collapsed {
-        let (_, detail_area) = expanded_sidebar_sections(sidebar_area, app.sidebar_section_split);
+        let (_, detail_area, files_area) = expanded_sidebar_sections(
+            sidebar_area,
+            app.sidebar_section_split,
+            app.files_section_split,
+        );
         let max_agent_scroll = agent_panel_scroll_metrics(app, detail_area).max_offset_from_bottom;
         app.agent_panel_scroll = app.agent_panel_scroll.min(max_agent_scroll);
+        let max_files_scroll = files_panel_scroll_metrics(app, files_area).max_offset_from_bottom;
+        app.files_scroll = app.files_scroll.min(max_files_scroll);
     } else {
         app.agent_panel_scroll = 0;
     }
@@ -177,6 +187,12 @@ fn compute_view_internal(
         Vec::new()
     } else {
         compute_workspace_card_areas(app, sidebar_area)
+    };
+
+    let files_rows = if app.sidebar_collapsed {
+        Vec::new()
+    } else {
+        compute_files_rows(app, sidebar_area)
     };
 
     let tab_bar_view = app
@@ -215,6 +231,7 @@ fn compute_view_internal(
         layout: ViewLayout::Desktop,
         sidebar_rect: sidebar_area,
         workspace_card_areas,
+        files_rows,
         tab_bar_rect,
         tab_hit_areas: tab_bar_view.tab_hit_areas,
         tab_scroll_left_hit_area: tab_bar_view.scroll_left_hit_area,
@@ -272,6 +289,7 @@ fn compute_mobile_view(
         layout: ViewLayout::Mobile,
         sidebar_rect: Rect::default(),
         workspace_card_areas: Vec::new(),
+        files_rows: Vec::new(),
         tab_bar_rect: Rect::default(),
         tab_hit_areas: Vec::new(),
         tab_scroll_left_hit_area: Rect::default(),
@@ -798,7 +816,7 @@ mod tests {
             .duration_since(std::time::UNIX_EPOCH)
             .expect("unix time")
             .as_nanos();
-        let root = std::env::temp_dir().join(format!("herdr-ui-test-{unique}"));
+        let root = std::env::temp_dir().join(format!("panels-ui-test-{unique}"));
         std::fs::create_dir_all(root.join(".git")).expect("create .git dir");
         std::fs::write(
             root.join(".git/HEAD"),
@@ -811,11 +829,11 @@ mod tests {
     #[test]
     fn release_notes_inline_code_spans_are_styled_without_backticks() {
         let palette = Palette::catppuccin();
-        let lines = release_notes_lines("- `herdr pane run ...` now works", &palette);
+        let lines = release_notes_lines("- `panels pane run ...` now works", &palette);
 
         assert_eq!(lines.len(), 1);
-        assert_eq!(line_text(&lines[0].1), " • herdr pane run ... now works");
-        assert_eq!(lines[0].1.spans[1].content.as_ref(), "herdr pane run ...");
+        assert_eq!(line_text(&lines[0].1), " • panels pane run ... now works");
+        assert_eq!(lines[0].1.spans[1].content.as_ref(), "panels pane run ...");
         assert_eq!(lines[0].1.spans[1].style.fg, Some(palette.accent));
         assert_eq!(lines[0].1.spans[1].style.bg, Some(palette.surface0));
     }
@@ -823,13 +841,13 @@ mod tests {
     #[test]
     fn release_notes_preview_lines_show_update_steps() {
         let palette = Palette::catppuccin();
-        let lines = release_notes_preview_lines("0.5.0", "herdr update", &palette);
+        let lines = release_notes_preview_lines("0.5.0", "panels update", &palette);
 
         assert_eq!(lines.len(), 2);
         assert_eq!(line_text(&lines[0]), "● update ready");
         assert_eq!(
             line_text(&lines[1]),
-            "detach from this session, then run herdr update in your shell"
+            "detach from this session, then run panels update in your shell"
         );
         assert_eq!(lines[0].spans[0].style.fg, Some(palette.accent));
         assert_eq!(lines[0].spans[1].style.fg, Some(palette.text));

@@ -1,4 +1,7 @@
 /target
+/.claude/
+.env
+*.local.json
 /vendor/libghostty-vt/zig-pkg/
 __pycache__/
 *.pyc

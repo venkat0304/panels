@@ -1,7 +1,7 @@
 //! Self-update mechanism.
 //!
-//! Checks the hosted herdr.dev update manifest for newer versions.
-//! Manual `herdr update` downloads and installs the binary.
+//! Checks the hosted panels.dev update manifest for newer versions.
+//! Manual `panels update` downloads and installs the binary.
 //! Background checks only surface availability and release notes.
 //! Uses `curl` as a subprocess for HTTP — no additional Rust HTTP dependencies.
 //! JSON parsing uses serde_json (already in deps for persistence).
@@ -17,13 +17,13 @@ use std::time::{Duration, Instant};
 
 use serde::Deserialize;
 
-const UPDATE_MANIFEST_URL: &str = "https://herdr.dev/latest.json";
-const HOMEBREW_FORMULA_API_URL: &str = "https://formulae.brew.sh/api/formula/herdr.json";
-const HERDR_UPDATE_COMMAND: &str = "herdr update";
-const HOMEBREW_UPDATE_COMMAND: &str = "brew update && brew upgrade herdr";
+const UPDATE_MANIFEST_URL: &str = "https://panels.dev/latest.json";
+const HOMEBREW_FORMULA_API_URL: &str = "https://formulae.brew.sh/api/formula/panels.json";
+const PANELS_UPDATE_COMMAND: &str = "panels update";
+const HOMEBREW_UPDATE_COMMAND: &str = "brew update && brew upgrade panels";
 const CURRENT_VERSION: &str = env!("CARGO_PKG_VERSION");
-const FAKE_UPDATE_VERSION_ENV: &str = "HERDR_FAKE_UPDATE_VERSION";
-const FAKE_UPDATE_NOTES_VERSION_ENV: &str = "HERDR_FAKE_UPDATE_NOTES_VERSION";
+const FAKE_UPDATE_VERSION_ENV: &str = "PANELS_FAKE_UPDATE_VERSION";
+const FAKE_UPDATE_NOTES_VERSION_ENV: &str = "PANELS_FAKE_UPDATE_NOTES_VERSION";
 const DEFAULT_FAKE_UPDATE_NOTES_VERSION: &str = "0.3.0";
 const SERVER_STOP_RESPONSE_TIMEOUT: Duration = Duration::from_secs(5);
 const SERVER_SHUTDOWN_CONFIRM_TIMEOUT: Duration = Duration::from_secs(5);
@@ -242,7 +242,7 @@ fn download_update(release: &ReleaseInfo) -> Result<DownloadedUpdate, String> {
     let parent = current_exe.parent().ok_or("can't find binary directory")?;
 
     // Check write permissions early
-    let test_path = parent.join(".herdr-write-test");
+    let test_path = parent.join(".panels-write-test");
     if let Err(e) = fs::write(&test_path, b"") {
         let _ = fs::remove_file(&test_path);
         return Err(format!(
@@ -254,7 +254,7 @@ fn download_update(release: &ReleaseInfo) -> Result<DownloadedUpdate, String> {
     let _ = fs::remove_file(&test_path);
 
     // Unique temp file (avoids races with concurrent instances)
-    let tmp_path = parent.join(format!(".herdr-update-{}.tmp", std::process::id()));
+    let tmp_path = parent.join(format!(".panels-update-{}.tmp", std::process::id()));
 
     // Download the exact asset URL (pinned to the release we checked)
     let status = Command::new("curl")
@@ -306,12 +306,12 @@ fn install_downloaded_update(mut update: DownloadedUpdate) -> Result<(), String>
 // Upgrade flow helpers
 // ---------------------------------------------------------------------------
 
-fn running_inside_herdr_env(herdr_env: Option<&str>) -> bool {
-    herdr_env == Some(crate::HERDR_ENV_VALUE)
+fn running_inside_panels_env(panels_env: Option<&str>) -> bool {
+    panels_env == Some(crate::PANELS_ENV_VALUE)
 }
 
-fn running_inside_herdr() -> bool {
-    running_inside_herdr_env(env::var(crate::HERDR_ENV_VAR).ok().as_deref())
+fn running_inside_panels() -> bool {
+    running_inside_panels_env(env::var(crate::PANELS_ENV_VAR).ok().as_deref())
 }
 
 fn api_server_is_running_at(socket_path: &Path) -> bool {
@@ -377,18 +377,18 @@ fn prompt_to_stop_server_before_update(
     if !io::stdin().is_terminal() {
         if requires_stop {
             return Err(format!(
-                "a herdr server is running and updating to v{} requires stopping it; run `herdr server stop`, then run `herdr update` again",
+                "a panels server is running and updating to v{} requires stopping it; run `panels server stop`, then run `panels update` again",
                 release.version
             ));
         }
 
         eprintln!(
-            "a herdr server is running. updating the binary will not affect that server until it restarts."
+            "a panels server is running. updating the binary will not affect that server until it restarts."
         );
         return Ok(false);
     }
 
-    eprintln!("a herdr server is currently running:");
+    eprintln!("a panels server is currently running:");
     eprintln!(
         "  server: v{} protocol {}",
         version_label(server.version.as_deref()),
@@ -403,9 +403,9 @@ fn prompt_to_stop_server_before_update(
 
     if requires_stop {
         eprintln!(
-            "this update changes the herdr client/server protocol. the running server must be stopped before the new client can attach."
+            "this update changes the panels client/server protocol. the running server must be stopped before the new client can attach."
         );
-        eprintln!("stopping the server will end the current herdr session and its panes.");
+        eprintln!("stopping the server will end the current panels session and its panes.");
     } else {
         eprintln!("updating the binary will not affect the running server until it restarts.");
     }
@@ -449,7 +449,7 @@ fn plan_running_server_update(
     let Some(server) = read_running_server_info()? else {
         if client_protocol_server_is_running() {
             return Err(
-                "a herdr server is listening, but its status API is unavailable; try `herdr server stop`, or stop the old server process manually, then run `herdr update` again"
+                "a panels server is listening, but its status API is unavailable; try `panels server stop`, or stop the old server process manually, then run `panels update` again"
                     .to_string(),
             );
         }
@@ -476,7 +476,7 @@ fn stop_running_server_for_update(
     if !stop_server {
         if plan.requires_stop {
             return Err(
-                "update cancelled; stop the running herdr server with `herdr server stop`, then run `herdr update` again"
+                "update cancelled; stop the running panels server with `panels server stop`, then run `panels update` again"
                     .to_string(),
             );
         }
@@ -485,7 +485,7 @@ fn stop_running_server_for_update(
 
     stop_server_via_api()?;
     wait_for_server_shutdown(SERVER_SHUTDOWN_CONFIRM_TIMEOUT)?;
-    eprintln!("stopped the running herdr server.");
+    eprintln!("stopped the running panels server.");
     Ok(true)
 }
 
@@ -593,7 +593,7 @@ pub(crate) fn update_install_command() -> &'static str {
     if is_homebrew_managed_install() {
         HOMEBREW_UPDATE_COMMAND
     } else {
-        HERDR_UPDATE_COMMAND
+        PANELS_UPDATE_COMMAND
     }
 }
 
@@ -616,7 +616,7 @@ fn is_homebrew_managed_exe_path(path: &Path) -> bool {
 }
 
 fn homebrew_cellar_keg_root(path: &Path) -> Option<PathBuf> {
-    if path.file_name()? != "herdr" {
+    if path.file_name()? != "panels" {
         return None;
     }
     let bin_dir = path.parent()?;
@@ -625,7 +625,7 @@ fn homebrew_cellar_keg_root(path: &Path) -> Option<PathBuf> {
     }
     let version_dir = bin_dir.parent()?;
     let formula_dir = version_dir.parent()?;
-    if formula_dir.file_name()? != "herdr" {
+    if formula_dir.file_name()? != "panels" {
         return None;
     }
     let cellar_dir = formula_dir.parent()?;
@@ -639,7 +639,7 @@ fn homebrew_cellar_keg_root(path: &Path) -> Option<PathBuf> {
 // Public API
 // ---------------------------------------------------------------------------
 
-/// Manual self-update command (`herdr update`).
+/// Manual self-update command (`panels update`).
 pub fn self_update() -> Result<Version, String> {
     if is_homebrew_managed_install() {
         return Err(format!(
@@ -647,8 +647,8 @@ pub fn self_update() -> Result<Version, String> {
         ));
     }
 
-    if running_inside_herdr() {
-        return Err("run `herdr update` outside herdr after detaching from the session".into());
+    if running_inside_panels() {
+        return Err("run `panels update` outside panels after detaching from the session".into());
     }
 
     eprintln!("checking for updates...");
@@ -679,11 +679,11 @@ pub fn self_update() -> Result<Version, String> {
     print_outdated_integration_notice_with_updated_binary(&updated_exe);
 
     if stopped_server {
-        eprintln!("run herdr again to start the updated server.");
+        eprintln!("run panels again to start the updated server.");
     } else if api_server_is_running() {
-        eprintln!("the running herdr server will use the new version after it restarts.");
+        eprintln!("the running panels server will use the new version after it restarts.");
     } else {
-        eprintln!("run herdr again.");
+        eprintln!("run panels again.");
     }
 
     Ok(release.version)
@@ -759,7 +759,7 @@ pub fn auto_update(events: tokio::sync::mpsc::Sender<crate::events::AppEvent>) {
     // Notify the TUI — blocking_send is safe from a std::thread
     let _ = events.blocking_send(crate::events::AppEvent::UpdateReady {
         version: release.version.to_string(),
-        install_command: HERDR_UPDATE_COMMAND.to_string(),
+        install_command: PANELS_UPDATE_COMMAND.to_string(),
     });
 }
 
@@ -901,32 +901,32 @@ mod tests {
 
     #[test]
     fn homebrew_cellar_path_is_detected() {
-        let path = Path::new("/opt/homebrew/Cellar/herdr/0.5.9/bin/herdr");
+        let path = Path::new("/opt/homebrew/Cellar/panels/0.5.9/bin/panels");
 
         assert!(is_homebrew_managed_exe_path(path));
         assert_eq!(
             homebrew_cellar_keg_root(path).unwrap(),
-            PathBuf::from("/opt/homebrew/Cellar/herdr/0.5.9")
+            PathBuf::from("/opt/homebrew/Cellar/panels/0.5.9")
         );
     }
 
     #[test]
     fn homebrew_linux_cellar_path_is_detected() {
-        let path = Path::new("/home/linuxbrew/.linuxbrew/Cellar/herdr/0.5.9/bin/herdr");
+        let path = Path::new("/home/linuxbrew/.linuxbrew/Cellar/panels/0.5.9/bin/panels");
 
         assert!(is_homebrew_managed_exe_path(path));
     }
 
     #[test]
     fn homebrew_opt_path_requires_canonicalized_cellar_target() {
-        let path = Path::new("/opt/homebrew/opt/herdr/bin/herdr");
+        let path = Path::new("/opt/homebrew/opt/panels/bin/panels");
 
         assert!(!is_homebrew_managed_exe_path(path));
     }
 
     #[test]
     fn non_homebrew_path_is_not_detected() {
-        let path = Path::new("/usr/local/bin/herdr");
+        let path = Path::new("/usr/local/bin/panels");
 
         assert!(!is_homebrew_managed_exe_path(path));
     }
@@ -963,10 +963,10 @@ mod tests {
     }
 
     #[test]
-    fn running_inside_herdr_env_requires_marker() {
-        assert!(running_inside_herdr_env(Some(crate::HERDR_ENV_VALUE)));
-        assert!(!running_inside_herdr_env(None));
-        assert!(!running_inside_herdr_env(Some("0")));
+    fn running_inside_panels_env_requires_marker() {
+        assert!(running_inside_panels_env(Some(crate::PANELS_ENV_VALUE)));
+        assert!(!running_inside_panels_env(None));
+        assert!(!running_inside_panels_env(Some("0")));
     }
 
     #[test]
@@ -989,7 +989,7 @@ mod tests {
         let compatible_release = ReleaseInfo {
             version: Version::parse("0.5.6").unwrap(),
             target_protocol: Some(2),
-            download_url: "https://example.com/herdr".to_string(),
+            download_url: "https://example.com/panels".to_string(),
             notes_body: "### Changed\n- One".to_string(),
         };
         let incompatible_release = ReleaseInfo {
@@ -1148,8 +1148,8 @@ mod tests {
             \"protocol\": 4,\n\
             \"notes\": \"### Changed\\n- One\",\n\
             \"assets\": {\n\
-                \"linux-x86_64\": \"https://example.com/herdr-linux-x86_64\",\n\
-                \"macos-aarch64\": \"https://example.com/herdr-macos-aarch64\"\n\
+                \"linux-x86_64\": \"https://example.com/panels-linux-x86_64\",\n\
+                \"macos-aarch64\": \"https://example.com/panels-macos-aarch64\"\n\
             }\n\
         }";
         let manifest: UpdateManifest = serde_json::from_str(json).unwrap();
@@ -1159,7 +1159,7 @@ mod tests {
         assert_eq!(manifest.notes_body(), "### Changed\n- One");
         assert_eq!(
             manifest.download_url_for("linux", "x86_64").as_deref(),
-            Some("https://example.com/herdr-linux-x86_64")
+            Some("https://example.com/panels-linux-x86_64")
         );
     }
 
@@ -1168,7 +1168,7 @@ mod tests {
         let json = r#"{
             "version": "0.2.0",
             "assets": {
-                "linux-x86_64": "https://example.com/herdr-linux-x86_64"
+                "linux-x86_64": "https://example.com/panels-linux-x86_64"
             }
         }"#;
 
@@ -1202,7 +1202,7 @@ mod tests {
                 "unexpected release URL for {target}: {url}"
             );
             assert!(
-                url.ends_with(&format!("herdr-{target}")),
+                url.ends_with(&format!("panels-{target}")),
                 "unexpected asset name for {target}: {url}"
             );
         }

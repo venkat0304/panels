@@ -104,7 +104,7 @@ jobs:
               '',
               'We ask new contributors to open an issue first before submitting a PR. This helps us discuss the approach and avoid wasted effort.',
               '',
-              'Herdr is opinionated about how it should look, feel, and work. If your change affects UI, behavior, interaction patterns, or product direction, discuss it in an issue first.',
+              'Panels is opinionated about how it should look, feel, and work. If your change affects UI, behavior, interaction patterns, or product direction, discuss it in an issue first.',
               '',
               '**Next steps:**',
               '1. Open an issue describing what you want to change and why',

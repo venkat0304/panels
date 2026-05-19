@@ -68,7 +68,7 @@ pub fn load() -> Option<SessionSnapshot> {
                     warn!(
                         file_version = version,
                         supported = SNAPSHOT_VERSION,
-                        "session file is from a newer herdr version, ignoring"
+                        "session file is from a newer panels version, ignoring"
                     );
                     return None;
                 }
@@ -86,7 +86,7 @@ mod tests {
 
     fn temp_session_path(name: &str) -> PathBuf {
         let unique = format!(
-            "herdr-session-tests-{}-{}-{}",
+            "panels-session-tests-{}-{}-{}",
             name,
             std::process::id(),
             std::time::SystemTime::now()
@@ -106,6 +106,7 @@ mod tests {
             agent_panel_scope: AgentPanelScope::CurrentWorkspace,
             sidebar_width: Some(26),
             sidebar_section_split: Some(0.5),
+            files_section_split: Some(0.35),
         }
     }
 

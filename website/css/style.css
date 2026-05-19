@@ -378,7 +378,7 @@ a:hover {
     background: var(--mantle);
 }
 
-.position-table th.herdr-col {
+.position-table th.panels-col {
     color: var(--green);
 }
 
@@ -398,7 +398,7 @@ a:hover {
     color: var(--text);
     font-weight: 500;
 }
-.position-table td.herdr-col {
+.position-table td.panels-col {
     color: var(--text);
 }
 

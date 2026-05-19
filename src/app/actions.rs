@@ -386,9 +386,10 @@ impl AppState {
             return;
         }
 
-        let (_, detail_area) = crate::ui::expanded_sidebar_sections(
+        let (_, detail_area, _) = crate::ui::expanded_sidebar_sections(
             self.view.sidebar_rect,
             self.sidebar_section_split,
+            self.files_section_split,
         );
         let metrics = crate::ui::agent_panel_scroll_metrics(self, detail_area);
         let visible = metrics.viewport_rows;
@@ -738,7 +739,7 @@ impl AppState {
                 self.update_dismissed = true;
                 if matches!(
                     self.toast_config.delivery,
-                    crate::config::ToastDelivery::Herdr
+                    crate::config::ToastDelivery::Panels
                 ) {
                     self.toast = Some(ToastNotification {
                         kind: ToastKind::UpdateInstalled,
@@ -878,7 +879,7 @@ impl AppState {
 
         if matches!(
             self.toast_config.delivery,
-            crate::config::ToastDelivery::Herdr
+            crate::config::ToastDelivery::Panels
         ) {
             if let (Some(agent_label), Some(kind)) = (
                 change.agent_label.as_deref(),
@@ -1039,11 +1040,11 @@ mod tests {
     #[test]
     fn update_ready_sets_explicit_upgrade_toast() {
         let mut state = AppState::test_new();
-        state.toast_config.delivery = crate::config::ToastDelivery::Herdr;
+        state.toast_config.delivery = crate::config::ToastDelivery::Panels;
 
         let updates = state.handle_app_event(crate::events::AppEvent::UpdateReady {
             version: "0.5.0".into(),
-            install_command: "herdr update".into(),
+            install_command: "panels update".into(),
         });
 
         assert!(updates.is_empty());
@@ -1051,7 +1052,7 @@ mod tests {
         assert!(state.latest_release_notes_available);
         let toast = state.toast.as_ref().expect("update toast");
         assert_eq!(toast.title, "v0.5.0 available");
-        assert_eq!(toast.context, "detach, then run `herdr update`");
+        assert_eq!(toast.context, "detach, then run `panels update`");
     }
 
     fn mark_agent(state: &mut AppState, ws_idx: usize, tab_idx: usize, pane_id: PaneId) {
@@ -1458,7 +1459,7 @@ mod tests {
     fn background_waiting_sets_attention_toast() {
         let mut state = app_with_workspaces(&["active", "background"]);
         state.active = Some(0);
-        state.toast_config.delivery = crate::config::ToastDelivery::Herdr;
+        state.toast_config.delivery = crate::config::ToastDelivery::Panels;
         let bg_pane_id = *state.workspaces[1].panes.keys().next().unwrap();
 
         state.handle_app_event(AppEvent::StateChanged {
@@ -1477,7 +1478,7 @@ mod tests {
     fn hook_reported_unknown_agent_sets_toast_title_from_label() {
         let mut state = app_with_workspaces(&["active", "background"]);
         state.active = Some(0);
-        state.toast_config.delivery = crate::config::ToastDelivery::Herdr;
+        state.toast_config.delivery = crate::config::ToastDelivery::Panels;
         let bg_pane_id = *state.workspaces[1].panes.keys().next().unwrap();
 
         state.handle_app_event(AppEvent::HookStateReported {
@@ -1500,7 +1501,7 @@ mod tests {
     fn background_idle_sets_finished_toast() {
         let mut state = app_with_workspaces(&["active", "background"]);
         state.active = Some(0);
-        state.toast_config.delivery = crate::config::ToastDelivery::Herdr;
+        state.toast_config.delivery = crate::config::ToastDelivery::Panels;
         let bg_pane_id = *state.workspaces[1].panes.keys().next().unwrap();
         let bg_terminal_id = state.workspaces[1]
             .panes
@@ -1529,7 +1530,7 @@ mod tests {
     fn background_toast_includes_tab_name_when_workspace_has_multiple_tabs() {
         let mut state = app_with_workspaces(&["active", "background"]);
         state.active = Some(0);
-        state.toast_config.delivery = crate::config::ToastDelivery::Herdr;
+        state.toast_config.delivery = crate::config::ToastDelivery::Panels;
         state.workspaces[1].tabs[0].set_custom_name("main".into());
         let second_tab = state.workspaces[1].test_add_tab(Some("logs"));
         state.ensure_test_terminals();
@@ -1551,7 +1552,7 @@ mod tests {
     fn background_tab_in_active_workspace_still_sets_toast() {
         let mut state = app_with_workspaces(&["active"]);
         state.active = Some(0);
-        state.toast_config.delivery = crate::config::ToastDelivery::Herdr;
+        state.toast_config.delivery = crate::config::ToastDelivery::Panels;
         state.workspaces[0].tabs[0].set_custom_name("main".into());
         let second_tab = state.workspaces[0].test_add_tab(Some("logs"));
         state.ensure_test_terminals();
@@ -1573,7 +1574,7 @@ mod tests {
     fn active_workspace_active_tab_does_not_set_toast() {
         let mut state = app_with_workspaces(&["active"]);
         state.active = Some(0);
-        state.toast_config.delivery = crate::config::ToastDelivery::Herdr;
+        state.toast_config.delivery = crate::config::ToastDelivery::Panels;
         let pane_id = *state.workspaces[0].panes.keys().next().unwrap();
 
         state.handle_app_event(AppEvent::StateChanged {
@@ -1586,11 +1587,12 @@ mod tests {
     }
 
     #[test]
-    fn active_workspace_active_tab_keeps_herdr_toast_suppressed_when_outer_terminal_is_unfocused() {
+    fn active_workspace_active_tab_keeps_panels_toast_suppressed_when_outer_terminal_is_unfocused()
+    {
         let mut state = app_with_workspaces(&["active"]);
         state.active = Some(0);
         state.outer_terminal_focus = Some(false);
-        state.toast_config.delivery = crate::config::ToastDelivery::Herdr;
+        state.toast_config.delivery = crate::config::ToastDelivery::Panels;
         let pane_id = *state.workspaces[0].panes.keys().next().unwrap();
 
         state.handle_app_event(AppEvent::StateChanged {
@@ -1613,11 +1615,11 @@ mod tests {
     #[test]
     fn update_ready_sets_manual_update_toast() {
         let mut state = AppState::test_new();
-        state.toast_config.delivery = crate::config::ToastDelivery::Herdr;
+        state.toast_config.delivery = crate::config::ToastDelivery::Panels;
 
         let updates = state.handle_app_event(AppEvent::UpdateReady {
             version: "0.5.0".into(),
-            install_command: "herdr update".into(),
+            install_command: "panels update".into(),
         });
 
         assert!(updates.is_empty());
@@ -1627,27 +1629,27 @@ mod tests {
         let toast = state.toast.as_ref().expect("update toast");
         assert_eq!(toast.kind, ToastKind::UpdateInstalled);
         assert_eq!(toast.title, "v0.5.0 available");
-        assert_eq!(toast.context, "detach, then run `herdr update`");
+        assert_eq!(toast.context, "detach, then run `panels update`");
     }
 
     #[test]
     fn update_ready_uses_event_install_command_in_toast() {
         let mut state = AppState::test_new();
-        state.toast_config.delivery = crate::config::ToastDelivery::Herdr;
+        state.toast_config.delivery = crate::config::ToastDelivery::Panels;
 
         state.handle_app_event(AppEvent::UpdateReady {
             version: "0.5.0".into(),
-            install_command: "brew update && brew upgrade herdr".into(),
+            install_command: "brew update && brew upgrade panels".into(),
         });
 
         assert_eq!(
             state.update_install_command,
-            "brew update && brew upgrade herdr"
+            "brew update && brew upgrade panels"
         );
         let toast = state.toast.as_ref().expect("update toast");
         assert_eq!(
             toast.context,
-            "detach, then run `brew update && brew upgrade herdr`"
+            "detach, then run `brew update && brew upgrade panels`"
         );
     }
 

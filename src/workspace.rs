@@ -747,14 +747,14 @@ mod tests {
         let mut terminals = HashMap::new();
         terminals.insert(
             terminal_id.clone(),
-            TerminalState::new(terminal_id, PathBuf::from("/herdr-test/pion")),
+            TerminalState::new(terminal_id, PathBuf::from("/panels-test/pion")),
         );
         let terminal_runtimes = HashMap::new();
 
         assert_eq!(ws.display_name_from(&terminals, &terminal_runtimes), "pion");
         assert_eq!(
             ws.resolved_identity_cwd_from(&terminals, &terminal_runtimes),
-            Some(PathBuf::from("/herdr-test/pion"))
+            Some(PathBuf::from("/panels-test/pion"))
         );
     }
 

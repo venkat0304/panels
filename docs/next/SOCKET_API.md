@@ -1,15 +1,15 @@
-# herdr socket api
+# panels socket api
 
-herdr exposes a local unix socket api for scripts, tools, and coding agents that want to control a running herdr instance or subscribe to events.
+panels exposes a local unix socket api for scripts, tools, and coding agents that want to control a running panels instance or subscribe to events.
 
-if you are teaching an agent that is already running inside herdr, start with [`SKILL.md`](./SKILL.md). use this document when you want the direct protocol, or when you want the cli wrapper reference for the commands that sit on top of it.
+if you are teaching an agent that is already running inside panels, start with [`SKILL.md`](./SKILL.md). use this document when you want the direct protocol, or when you want the cli wrapper reference for the commands that sit on top of it.
 
 ## choose your integration layer
 
-there are three practical ways to integrate with herdr:
+there are three practical ways to integrate with panels:
 
-- **agent skill** — [`SKILL.md`](./SKILL.md). best when an agent inside herdr just needs to learn the workflow quickly.
-- **cli wrappers** — `herdr server stop`, `herdr workspace ...`, `herdr tab ...`, `herdr agent ...`, `herdr pane ...`, `herdr wait ...`. best for shell scripts and simple orchestration.
+- **agent skill** — [`SKILL.md`](./SKILL.md). best when an agent inside panels just needs to learn the workflow quickly.
+- **cli wrappers** — `panels server stop`, `panels workspace ...`, `panels tab ...`, `panels agent ...`, `panels pane ...`, `panels wait ...`. best for shell scripts and simple orchestration.
 - **raw socket api** — best when you want direct request/response control or long-lived event subscriptions.
 
 these layers are intentionally stacked on top of the same control surface.
@@ -23,21 +23,21 @@ important difference: `pane.run` and `wait agent-status` are **cli conveniences*
 - request/response: send one json request per line, read one json response per line
 - subscriptions: send `events.subscribe`, receive an ack, then keep the same connection open and continue reading pushed events
 
-named sessions are runtime/socket namespaces, not replacements for herdr workspaces. each named session has its own server sockets and persistent runtime state while config remains global.
+named sessions are runtime/socket namespaces, not replacements for panels workspaces. each named session has its own server sockets and persistent runtime state while config remains global.
 
 socket path resolution order:
 
-1. explicit `herdr --session <name>`:
-   `$XDG_CONFIG_HOME/herdr/sessions/<name>/herdr.sock` or `$HOME/.config/herdr/sessions/<name>/herdr.sock`
-2. `HERDR_SOCKET_PATH`
-3. `HERDR_SESSION=<name>`:
-   `$XDG_CONFIG_HOME/herdr/sessions/<name>/herdr.sock` or `$HOME/.config/herdr/sessions/<name>/herdr.sock`
+1. explicit `panels --session <name>`:
+   `$XDG_CONFIG_HOME/panels/sessions/<name>/panels.sock` or `$HOME/.config/panels/sessions/<name>/panels.sock`
+2. `PANELS_SOCKET_PATH`
+3. `PANELS_SESSION=<name>`:
+   `$XDG_CONFIG_HOME/panels/sessions/<name>/panels.sock` or `$HOME/.config/panels/sessions/<name>/panels.sock`
 4. default session path:
-   `$XDG_CONFIG_HOME/herdr/herdr.sock` or `$HOME/.config/herdr/herdr.sock`
+   `$XDG_CONFIG_HOME/panels/panels.sock` or `$HOME/.config/panels/panels.sock`
 
-this means `HERDR_SOCKET_PATH` remains an exact low-level socket override, but an explicit cli `--session <name>` still wins when a command runs inside a pane that inherited `HERDR_SOCKET_PATH`.
+this means `PANELS_SOCKET_PATH` remains an exact low-level socket override, but an explicit cli `--session <name>` still wins when a command runs inside a pane that inherited `PANELS_SOCKET_PATH`.
 
-session names may contain ASCII letters, numbers, `.`, `_`, and `-`. `default` is reserved for the default session. use `herdr session list`, `herdr session attach <name>`, `herdr session stop <name>`, and `herdr session delete <name>` to inspect and manage session namespaces. session commands print human-readable output by default; pass `--json` for machine-readable output. `session delete` refuses running sessions and does not delete the default session.
+session names may contain ASCII letters, numbers, `.`, `_`, and `-`. `default` is reserved for the default session. use `panels session list`, `panels session attach <name>`, `panels session stop <name>`, and `panels session delete <name>` to inspect and manage session namespaces. session commands print human-readable output by default; pass `--json` for machine-readable output. `session delete` refuses running sessions and does not delete the default session.
 
 ## request and response envelopes
 
@@ -113,7 +113,7 @@ for backward compatibility, requests also accept the older positional forms like
 {
   "workspace_id": "w64e95948145ed1",
   "number": 1,
-  "label": "herdr",
+  "label": "panels",
   "focused": true,
   "pane_count": 1,
   "tab_count": 1,
@@ -145,7 +145,7 @@ for backward compatibility, requests also accept the older positional forms like
   "workspace_id": "w64e95948145ed1",
   "tab_id": "w64e95948145ed1:1",
   "focused": true,
-  "cwd": "/home/can/Projects/herdr",
+  "cwd": "/home/can/Projects/panels",
   "label": "reviewer",
   "agent": "pi",
   "agent_status": "working",
@@ -171,7 +171,7 @@ for backward compatibility, requests also accept the older positional forms like
   "tab_id": "w64e95948145ed1:1",
   "pane_id": "w64e95948145ed1-1",
   "focused": true,
-  "cwd": "/home/can/Projects/herdr",
+  "cwd": "/home/can/Projects/panels",
   "revision": 0
 }
 ```
@@ -180,7 +180,7 @@ for backward compatibility, requests also accept the older positional forms like
 
 `agent` is an optional display label string.
 
-- when herdr detects a built-in agent, this is that built-in name like `pi` or `claude`
+- when panels detects a built-in agent, this is that built-in name like `pi` or `claude`
 - when a hook or plugin reports a custom agent through `pane.report_agent`, this can be any non-empty label like `hermes`
 - when no agent identity is known, it is omitted
 
@@ -301,7 +301,7 @@ params:
 
 ```json
 {
-  "cwd": "/home/can/Projects/herdr",
+  "cwd": "/home/can/Projects/panels",
   "focus": true
 }
 ```
@@ -309,7 +309,7 @@ params:
 notes:
 
 - `cwd` is optional
-- if `cwd` is omitted, herdr uses its current working directory and falls back to `/` if needed
+- if `cwd` is omitted, panels uses its current working directory and falls back to `/` if needed
 - `focus` is optional in raw socket requests and defaults to `false`
 - the cli wrapper also defaults to no focus; pass `--focus` to switch to the new workspace
 
@@ -323,7 +323,7 @@ example response:
     "workspace": {
       "workspace_id": "1",
       "number": 1,
-      "label": "herdr",
+      "label": "panels",
       "focused": true,
       "pane_count": 1,
       "tab_count": 1,
@@ -427,7 +427,7 @@ params:
 ```json
 {
   "workspace_id": "1",
-  "cwd": "/home/can/Projects/herdr",
+  "cwd": "/home/can/Projects/panels",
   "focus": true
 }
 ```
@@ -435,7 +435,7 @@ params:
 notes:
 
 - `workspace_id` is optional and defaults to the active workspace
-- `cwd` is optional; if omitted, herdr uses the focused pane cwd in that workspace when available
+- `cwd` is optional; if omitted, panels uses the focused pane cwd in that workspace when available
 - `focus` is optional in raw socket requests and defaults to `false`
 - the cli wrapper also defaults to no focus; pass `--focus` to switch to the new tab
 
@@ -698,7 +698,7 @@ returns `ok`.
 
 ### `pane.release_agent`
 
-use this when the reported agent is exiting cleanly and wants herdr to drop agent identity immediately instead of waiting for fallback detection.
+use this when the reported agent is exiting cleanly and wants panels to drop agent identity immediately instead of waiting for fallback detection.
 
 params:
 
@@ -714,7 +714,7 @@ notes:
 
 - `agent` uses the same non-empty label rules as `pane.report_agent`
 - this clears the pane's effective agent identity immediately when the source and label match the active authority
-- for built-in detected agents, herdr also applies its normal short reacquire suppression during graceful release
+- for built-in detected agents, panels also applies its normal short reacquire suppression during graceful release
 
 returns `ok`.
 
@@ -880,7 +880,7 @@ example pushed event:
     "workspace": {
       "workspace_id": "1",
       "number": 1,
-      "label": "herdr",
+      "label": "panels",
       "focused": true,
       "pane_count": 1,
       "tab_count": 1,
@@ -969,47 +969,47 @@ these commands provide the shell-facing control surface. most command groups tal
 status commands:
 
 ```text
-herdr status
-herdr status server
-herdr status client
+panels status
+panels status server
+panels status client
 ```
 
-`herdr -V` and `herdr --version` print the local executable version without contacting the server. `herdr status` compares that local executable with the running server when one is reachable.
+`panels -V` and `panels --version` print the local executable version without contacting the server. `panels status` compares that local executable with the running server when one is reachable.
 
 workspace commands:
 
 ```text
-herdr workspace list
-herdr workspace create [--cwd PATH] [--label TEXT] [--focus] [--no-focus]
-herdr workspace get <workspace_id>
-herdr workspace focus <workspace_id>
-herdr workspace rename <workspace_id> <label>
-herdr workspace close <workspace_id>
+panels workspace list
+panels workspace create [--cwd PATH] [--label TEXT] [--focus] [--no-focus]
+panels workspace get <workspace_id>
+panels workspace focus <workspace_id>
+panels workspace rename <workspace_id> <label>
+panels workspace close <workspace_id>
 ```
 
 tab commands:
 
 ```text
-herdr tab list [--workspace <workspace_id>]
-herdr tab create [--workspace <workspace_id>] [--cwd PATH] [--label TEXT] [--focus] [--no-focus]
-herdr tab get <tab_id>
-herdr tab focus <tab_id>
-herdr tab rename <tab_id> <label>
-herdr tab close <tab_id>
+panels tab list [--workspace <workspace_id>]
+panels tab create [--workspace <workspace_id>] [--cwd PATH] [--label TEXT] [--focus] [--no-focus]
+panels tab get <tab_id>
+panels tab focus <tab_id>
+panels tab rename <tab_id> <label>
+panels tab close <tab_id>
 ```
 
 agent commands:
 
 ```text
-herdr agent list
-herdr agent get <target>
-herdr agent read <target> [--source visible|recent|recent-unwrapped] [--lines N] [--format text|ansi] [--ansi]
-herdr agent send <target> <text>
-herdr agent rename <target> <name>|--clear
-herdr agent focus <target>
-herdr agent wait <target> --status <idle|working|blocked|unknown> [--timeout MS]
-herdr agent attach <target> [--takeover]
-herdr agent start <name> [--cwd PATH] [--workspace ID] [--tab ID] [--split right|down] [--focus|--no-focus] -- <argv...>
+panels agent list
+panels agent get <target>
+panels agent read <target> [--source visible|recent|recent-unwrapped] [--lines N] [--format text|ansi] [--ansi]
+panels agent send <target> <text>
+panels agent rename <target> <name>|--clear
+panels agent focus <target>
+panels agent wait <target> --status <idle|working|blocked|unknown> [--timeout MS]
+panels agent attach <target> [--takeover]
+panels agent start <name> [--cwd PATH] [--workspace ID] [--tab ID] [--split right|down] [--focus|--no-focus] -- <argv...>
 ```
 
 agent targets accept terminal ids, unique agent names, detected/reported agent labels, and legacy pane ids. `agent list` shows terminals with explicit agent identity, detected/reported agent identity, or `agent.start` launch metadata. `pane.rename` does not make a plain terminal appear in `agent list`; use `agent.rename` for agent identity.
@@ -1017,7 +1017,7 @@ agent targets accept terminal ids, unique agent names, detected/reported agent l
 terminal commands:
 
 ```text
-herdr terminal attach <terminal_id> [--takeover]
+panels terminal attach <terminal_id> [--takeover]
 ```
 
 `terminal attach` is the low-level direct attach primitive. it streams the current rendered terminal state first, then live ANSI frames. direct attach has one writable input/resize owner; a second direct attach fails unless you pass `--takeover`. detach with `ctrl+b q`; send a literal `ctrl+b` with `ctrl+b ctrl+b`.
@@ -1025,23 +1025,23 @@ herdr terminal attach <terminal_id> [--takeover]
 pane commands:
 
 ```text
-herdr pane list [--workspace <workspace_id>]
-herdr pane get <pane_id>
-herdr pane rename <pane_id> <label>|--clear
-herdr pane read <pane_id> [--source visible|recent|recent-unwrapped] [--lines N] [--format text|ansi] [--ansi]
-herdr pane split <pane_id> --direction right|down [--cwd PATH] [--focus] [--no-focus]
-herdr pane close <pane_id>
-herdr pane send-text <pane_id> <text>
-herdr pane send-keys <pane_id> <key> [key ...]
-herdr pane report-agent <pane_id> --source ID --agent LABEL --state idle|working|blocked|unknown [--message TEXT] [--custom-status TEXT] [--seq N]
-herdr pane run <pane_id> <command>
+panels pane list [--workspace <workspace_id>]
+panels pane get <pane_id>
+panels pane rename <pane_id> <label>|--clear
+panels pane read <pane_id> [--source visible|recent|recent-unwrapped] [--lines N] [--format text|ansi] [--ansi]
+panels pane split <pane_id> --direction right|down [--cwd PATH] [--focus] [--no-focus]
+panels pane close <pane_id>
+panels pane send-text <pane_id> <text>
+panels pane send-keys <pane_id> <key> [key ...]
+panels pane report-agent <pane_id> --source ID --agent LABEL --state idle|working|blocked|unknown [--message TEXT] [--custom-status TEXT] [--seq N]
+panels pane run <pane_id> <command>
 ```
 
 wait commands:
 
 ```text
-herdr wait output <pane_id> --match <text> [--source visible|recent|recent-unwrapped] [--lines N] [--timeout MS] [--regex] [--raw]
-herdr wait agent-status <pane_id> --status <idle|working|blocked|done|unknown> [--timeout MS]
+panels wait output <pane_id> --match <text> [--source visible|recent|recent-unwrapped] [--lines N] [--timeout MS] [--regex] [--raw]
+panels wait agent-status <pane_id> --status <idle|working|blocked|done|unknown> [--timeout MS]
 ```
 
 ### cli behavior notes
@@ -1079,28 +1079,28 @@ herdr wait agent-status <pane_id> --status <idle|working|blocked|done|unknown> [
 create a workspace, split a pane, run a server, and wait for readiness:
 
 ```bash
-herdr workspace create --cwd /path/to/project --label "api server"
-herdr pane split 1-1 --direction right --no-focus
-herdr pane run 1-2 "npm run dev"
-herdr wait output 1-2 --match "ready" --timeout 30000
+panels workspace create --cwd /path/to/project --label "api server"
+panels pane split 1-1 --direction right --no-focus
+panels pane run 1-2 "npm run dev"
+panels wait output 1-2 --match "ready" --timeout 30000
 ```
 
 wait for an agent by name to become idle for CLI automation:
 
 ```bash
-herdr agent wait reviewer --status idle --timeout 60000
+panels agent wait reviewer --status idle --timeout 60000
 ```
 
 wait for a pane-level UI attention state:
 
 ```bash
-herdr wait agent-status 1-1 --status done --timeout 60000
+panels wait agent-status 1-1 --status done --timeout 60000
 ```
 
 inspect another pane's output:
 
 ```bash
-herdr pane read 1-1 --source recent --lines 80
+panels pane read 1-1 --source recent --lines 80
 ```
 
 ## behavior notes and gotchas
@@ -1110,4 +1110,4 @@ herdr pane read 1-1 --source recent --lines 80
 - `pane.output_matched` subscriptions fire on transitions into a matching state; they do not repeatedly spam the same still-visible match on every poll.
 - closing the socket connection ends the subscription.
 - there is no separate event transport.
-- the same herdr process can serve regular request/response calls and long-lived subscription connections at the same time.
+- the same panels process can serve regular request/response calls and long-lived subscription connections at the same time.

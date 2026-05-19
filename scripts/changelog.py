@@ -11,11 +11,11 @@ from datetime import date
 from pathlib import Path
 from typing import Any
 
-DEFAULT_LIVE_MANIFEST_URL = "https://herdr.dev/latest.json"
+DEFAULT_LIVE_MANIFEST_URL = "https://panels.dev/latest.json"
 
 SECTION_RE = re.compile(r"^##\s+(?:\[(?P<bracketed>[^\]]+)\]|(?P<plain>.+?))\s*$", re.MULTILINE)
 VERSION_WITH_DATE_RE = re.compile(r"^(?P<version>.+?)\s+-\s+\d{4}-\d{2}-\d{2}$")
-DEFAULT_RELEASE_REPO = "ogulcancelik/herdr"
+DEFAULT_RELEASE_REPO = "ogulcancelik/panels"
 DEFAULT_LATEST_JSON_PATH = Path("website/latest.json")
 PROTOCOL_SOURCE_PATH = Path("src/server/protocol.rs")
 ASSET_TARGETS = (
@@ -24,7 +24,7 @@ ASSET_TARGETS = (
     "macos-x86_64",
     "macos-aarch64",
 )
-EXPECTED_ASSET_NAMES = {target: f"herdr-{target}" for target in ASSET_TARGETS}
+EXPECTED_ASSET_NAMES = {target: f"panels-{target}" for target in ASSET_TARGETS}
 
 
 @dataclass(frozen=True)
