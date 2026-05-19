@@ -18,9 +18,9 @@ use std::time::Duration;
 const BRIDGE_ACCEPT_POLL: Duration = Duration::from_millis(50);
 const BRIDGE_SOCKET_PERMISSION_MODE: u32 = 0o600;
 const CURRENT_VERSION: &str = env!("CARGO_PKG_VERSION");
-const UPDATE_MANIFEST_URL: &str = "https://herdr.dev/latest.json";
-const REMOTE_BINARY_ENV_VAR: &str = "HERDR_REMOTE_BINARY";
-pub(crate) const REATTACH_COMMAND_ENV_VAR: &str = "HERDR_REATTACH_COMMAND";
+const UPDATE_MANIFEST_URL: &str = "https://panels.dev/latest.json";
+const REMOTE_BINARY_ENV_VAR: &str = "PANELS_REMOTE_BINARY";
+pub(crate) const REATTACH_COMMAND_ENV_VAR: &str = "PANELS_REATTACH_COMMAND";
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct RemoteLaunch {
@@ -86,13 +86,13 @@ pub(crate) fn run_remote(remote: RemoteLaunch) -> io::Result<()> {
     let local_socket = local_forward_socket_path(&remote.target, &session_name);
     let program = std::env::args()
         .next()
-        .unwrap_or_else(|| "herdr".to_string());
+        .unwrap_or_else(|| "panels".to_string());
     let reattach_command = reattach_command(&program, &remote.target, &session_name);
-    let remote_herdr = prepare_remote_herdr(&remote.target)?;
+    let remote_panels = prepare_remote_panels(&remote.target)?;
 
     let _bridge = SshStdioBridge::start(
         remote.target,
-        remote_herdr,
+        remote_panels,
         local_socket.clone(),
         session_name,
     )?;
@@ -108,7 +108,7 @@ pub(crate) fn run_remote_client_bridge() -> io::Result<()> {
         io::Error::new(
             err.kind(),
             format!(
-                "failed to connect to remote Herdr client socket {}: {err}",
+                "failed to connect to remote Panels client socket {}: {err}",
                 socket_path.display()
             ),
         )
@@ -184,15 +184,15 @@ impl RemotePlatform {
 }
 
 #[derive(Debug, Clone)]
-struct RemoteHerdr {
+struct RemotePanels {
     install_suffix: String,
     shell_path: String,
     platform: RemotePlatform,
 }
 
-impl RemoteHerdr {
+impl RemotePanels {
     fn for_platform(platform: RemotePlatform) -> Self {
-        let install_suffix = ".local/bin/herdr".to_string();
+        let install_suffix = ".local/bin/panels".to_string();
         let shell_path = format!("\"$HOME/{install_suffix}\"");
         Self {
             install_suffix,
@@ -235,34 +235,34 @@ impl InstallSource {
     }
 }
 
-fn prepare_remote_herdr(target: &str) -> io::Result<RemoteHerdr> {
+fn prepare_remote_panels(target: &str) -> io::Result<RemotePanels> {
     let platform = detect_remote_platform(target)?;
-    let remote_herdr = RemoteHerdr::for_platform(platform);
+    let remote_panels = RemotePanels::for_platform(platform);
     let override_binary = remote_binary_override_path()?;
 
-    if override_binary.is_none() && remote_binary_matches(target, &remote_herdr)? {
-        return Ok(remote_herdr);
+    if override_binary.is_none() && remote_binary_matches(target, &remote_panels)? {
+        return Ok(remote_panels);
     }
 
     confirm_remote_install(
         target,
-        &remote_herdr,
-        &install_source_description(&remote_herdr.platform, override_binary.as_deref()),
+        &remote_panels,
+        &install_source_description(&remote_panels.platform, override_binary.as_deref()),
     )?;
-    let source = resolve_install_source(&remote_herdr.platform, override_binary)?;
-    let install_result = install_remote_herdr(target, &remote_herdr, &source.path);
+    let source = resolve_install_source(&remote_panels.platform, override_binary)?;
+    let install_result = install_remote_panels(target, &remote_panels, &source.path);
     source.cleanup();
     install_result?;
 
-    if !remote_binary_matches(target, &remote_herdr)? {
+    if !remote_binary_matches(target, &remote_panels)? {
         return Err(io::Error::other(format!(
-            "installed remote herdr at {}, but it did not report version {CURRENT_VERSION}",
-            remote_herdr.shell_path
+            "installed remote panels at {}, but it did not report version {CURRENT_VERSION}",
+            remote_panels.shell_path
         )));
     }
     warn_if_remote_bin_not_on_path(target)?;
 
-    Ok(remote_herdr)
+    Ok(remote_panels)
 }
 
 fn detect_remote_platform(target: &str) -> io::Result<RemotePlatform> {
@@ -284,15 +284,15 @@ fn detect_remote_platform(target: &str) -> io::Result<RemotePlatform> {
     })
 }
 
-fn remote_binary_matches(target: &str, remote_herdr: &RemoteHerdr) -> io::Result<bool> {
-    let command = format!("test -x {0} && {0} --version", remote_herdr.shell_path);
+fn remote_binary_matches(target: &str, remote_panels: &RemotePanels) -> io::Result<bool> {
+    let command = format!("test -x {0} && {0} --version", remote_panels.shell_path);
     let output = ssh_output(target, &command)?;
     if !output.status.success() {
         return Ok(false);
     }
 
     let version = String::from_utf8_lossy(&output.stdout);
-    Ok(version.trim() == format!("herdr {CURRENT_VERSION}"))
+    Ok(version.trim() == format!("panels {CURRENT_VERSION}"))
 }
 
 fn remote_binary_override_path() -> io::Result<Option<PathBuf>> {
@@ -335,7 +335,7 @@ fn install_source_description(platform: &RemotePlatform, override_binary: Option
     }
 
     if *platform == RemotePlatform::local() {
-        "the current local herdr binary".to_string()
+        "the current local panels binary".to_string()
     } else {
         format!(
             "the {CURRENT_VERSION} release asset for {}",
@@ -367,7 +367,7 @@ fn warn_if_remote_bin_not_on_path(target: &str) -> io::Result<()> {
     )?;
     if !output.status.success() {
         eprintln!(
-            "herdr: installed remote binary to ~/.local/bin/herdr, but ~/.local/bin is not in the remote PATH"
+            "panels: installed remote binary to ~/.local/bin/panels, but ~/.local/bin is not in the remote PATH"
         );
     }
     Ok(())
@@ -398,7 +398,7 @@ fn download_release_asset(platform: &RemotePlatform) -> io::Result<InstallSource
         .map_err(|err| io::Error::other(format!("failed to parse update manifest JSON: {err}")))?;
     if manifest.version.trim_start_matches('v') != CURRENT_VERSION {
         return Err(io::Error::other(format!(
-            "remote host is {}, but this local herdr is {CURRENT_VERSION} and the latest release manifest is {}; build herdr for the remote platform or install it there manually",
+            "remote host is {}, but this local panels is {CURRENT_VERSION} and the latest release manifest is {}; build panels for the remote platform or install it there manually",
             platform.asset_key(),
             manifest.version
         )));
@@ -407,12 +407,12 @@ fn download_release_asset(platform: &RemotePlatform) -> io::Result<InstallSource
     let asset_key = platform.asset_key();
     let url = manifest.assets.get(&asset_key).ok_or_else(|| {
         io::Error::other(format!(
-            "no {asset_key} binary in the release manifest for herdr {CURRENT_VERSION}"
+            "no {asset_key} binary in the release manifest for panels {CURRENT_VERSION}"
         ))
     })?;
 
     let dir = private_download_dir(&asset_key)?;
-    let path = dir.join("herdr.tmp");
+    let path = dir.join("panels.tmp");
     let status = Command::new("curl")
         .args(["-sfL", "--max-time", "120", "-o"])
         .arg(&path)
@@ -431,7 +431,7 @@ fn private_download_dir(asset_key: &str) -> io::Result<PathBuf> {
     let base = std::env::temp_dir();
     for attempt in 0..100 {
         let dir = base.join(format!(
-            "herdr-remote-{}-{}-{attempt}",
+            "panels-remote-{}-{}-{attempt}",
             std::process::id(),
             asset_key
         ));
@@ -444,29 +444,29 @@ fn private_download_dir(asset_key: &str) -> io::Result<PathBuf> {
 
     Err(io::Error::new(
         io::ErrorKind::AlreadyExists,
-        "failed to create private herdr remote download directory",
+        "failed to create private panels remote download directory",
     ))
 }
 
 fn confirm_remote_install(
     target: &str,
-    remote_herdr: &RemoteHerdr,
+    remote_panels: &RemotePanels,
     source_description: &str,
 ) -> io::Result<()> {
     if !io::stdin().is_terminal() {
         return Err(io::Error::other(format!(
-            "matching remote herdr {CURRENT_VERSION} is not installed at {}; run from an interactive terminal to approve installation",
-            remote_herdr.shell_path
+            "matching remote panels {CURRENT_VERSION} is not installed at {}; run from an interactive terminal to approve installation",
+            remote_panels.shell_path
         )));
     }
 
     eprintln!(
-        "matching herdr {CURRENT_VERSION} is not installed on {target} for {}.",
-        remote_herdr.platform.asset_key()
+        "matching panels {CURRENT_VERSION} is not installed on {target} for {}.",
+        remote_panels.platform.asset_key()
     );
     eprint!(
         "Install {} to {}? [Y/n] ",
-        source_description, remote_herdr.shell_path
+        source_description, remote_panels.shell_path
     );
     io::stderr().flush()?;
 
@@ -476,16 +476,16 @@ fn confirm_remote_install(
     if answer == "n" || answer == "no" {
         return Err(io::Error::new(
             io::ErrorKind::Interrupted,
-            "remote herdr installation cancelled",
+            "remote panels installation cancelled",
         ));
     }
 
     Ok(())
 }
 
-fn install_remote_herdr(
+fn install_remote_panels(
     target: &str,
-    remote_herdr: &RemoteHerdr,
+    remote_panels: &RemotePanels,
     source_path: &Path,
 ) -> io::Result<()> {
     let script = format!(
@@ -497,7 +497,7 @@ cat > "$tmp"
 chmod 755 "$tmp"
 mv "$tmp" "$dest"
 "#,
-        install_suffix = remote_herdr.install_suffix
+        install_suffix = remote_panels.install_suffix
     );
 
     let mut child = Command::new("ssh")
@@ -539,8 +539,8 @@ fn ssh_output(target: &str, command: &str) -> io::Result<Output> {
         .output()
 }
 
-fn remote_bridge_command(remote_herdr: &RemoteHerdr, session_name: &str) -> String {
-    let mut command = format!("exec {}", remote_herdr.shell_path);
+fn remote_bridge_command(remote_panels: &RemotePanels, session_name: &str) -> String {
+    let mut command = format!("exec {}", remote_panels.shell_path);
     if session_name != crate::session::DEFAULT_SESSION_NAME {
         command.push_str(" --session ");
         command.push_str(&shell_quote(session_name));
@@ -550,7 +550,11 @@ fn remote_bridge_command(remote_herdr: &RemoteHerdr, session_name: &str) -> Stri
 }
 
 fn reattach_command(program: &str, target: &str, session_name: &str) -> String {
-    let program = if program.is_empty() { "herdr" } else { program };
+    let program = if program.is_empty() {
+        "panels"
+    } else {
+        program
+    };
     let mut command = format!("{} --remote {}", shell_quote(program), shell_quote(target));
     if session_name != crate::session::DEFAULT_SESSION_NAME {
         command.push_str(" --session ");
@@ -594,7 +598,7 @@ struct SshStdioBridge {
 impl SshStdioBridge {
     fn start(
         target: String,
-        remote_herdr: RemoteHerdr,
+        remote_panels: RemotePanels,
         local_socket: PathBuf,
         session_name: String,
     ) -> io::Result<Self> {
@@ -611,21 +615,21 @@ impl SshStdioBridge {
                     Ok((stream, _addr)) => {
                         if let Err(err) = stream.set_nonblocking(false) {
                             eprintln!(
-                                "herdr: remote bridge failed to prepare client socket: {err}"
+                                "panels: remote bridge failed to prepare client socket: {err}"
                             );
                             continue;
                         }
                         if let Err(err) =
-                            bridge_connection(stream, &target, &remote_herdr, &session_name)
+                            bridge_connection(stream, &target, &remote_panels, &session_name)
                         {
-                            eprintln!("herdr: remote bridge failed: {err}");
+                            eprintln!("panels: remote bridge failed: {err}");
                         }
                     }
                     Err(err) if err.kind() == io::ErrorKind::WouldBlock => {
                         thread::sleep(BRIDGE_ACCEPT_POLL);
                     }
                     Err(err) => {
-                        eprintln!("herdr: remote bridge listener failed: {err}");
+                        eprintln!("panels: remote bridge listener failed: {err}");
                         break;
                     }
                 }
@@ -653,14 +657,14 @@ impl Drop for SshStdioBridge {
 fn bridge_connection(
     stream: UnixStream,
     target: &str,
-    remote_herdr: &RemoteHerdr,
+    remote_panels: &RemotePanels,
     session_name: &str,
 ) -> io::Result<()> {
     let mut command = Command::new("ssh");
     command
         .arg("-T")
         .arg(target)
-        .arg(remote_bridge_command(remote_herdr, session_name));
+        .arg(remote_bridge_command(remote_panels, session_name));
     command
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())
@@ -728,7 +732,7 @@ fn run_client_process(local_socket: &Path, reattach_command: &str) -> io::Result
             crate::server::headless::CLIENT_SOCKET_PATH_ENV_VAR,
             local_socket,
         )
-        .env("HERDR_RENDER_ENCODING", "terminal-ansi")
+        .env("PANELS_RENDER_ENCODING", "terminal-ansi")
         .env(REATTACH_COMMAND_ENV_VAR, reattach_command)
         .env_remove(crate::api::SOCKET_PATH_ENV_VAR)
         .stdin(Stdio::inherit())
@@ -753,7 +757,7 @@ fn local_forward_socket_path(target: &str, session_name: &str) -> PathBuf {
 
     let tmpdir = std::env::temp_dir();
     let readable = tmpdir.join(format!(
-        "herdr-remote-{pid}-{target_clean}-{session_clean}.sock"
+        "panels-remote-{pid}-{target_clean}-{session_clean}.sock"
     ));
     if fits_unix_socket_path(&readable) {
         return readable;
@@ -767,7 +771,7 @@ fn local_forward_socket_path(target: &str, session_name: &str) -> PathBuf {
     // the prefix is kept only for debuggability.
     let target_prefix: String = target_clean.chars().take(8).collect();
     let hash = short_socket_hash(target, session_name);
-    let short_name = format!("herdr-r-{pid}-{target_prefix}-{hash}.sock");
+    let short_name = format!("panels-r-{pid}-{target_prefix}-{hash}.sock");
     let short_in_tmp = tmpdir.join(&short_name);
     if fits_unix_socket_path(&short_in_tmp) {
         return short_in_tmp;
@@ -817,16 +821,16 @@ mod tests {
         use std::os::unix::fs::PermissionsExt;
 
         let socket = std::env::temp_dir().join(format!(
-            "herdr-bridge-permissions-test-{}.sock",
+            "panels-bridge-permissions-test-{}.sock",
             std::process::id()
         ));
-        let remote_herdr = RemoteHerdr::for_platform(RemotePlatform {
+        let remote_panels = RemotePanels::for_platform(RemotePlatform {
             os: "linux",
             arch: "x86_64",
         });
         let bridge = SshStdioBridge::start(
             "example".to_string(),
-            remote_herdr,
+            remote_panels,
             socket.clone(),
             "default".to_string(),
         )
@@ -842,34 +846,34 @@ mod tests {
     #[test]
     fn extract_remote_args_removes_space_form() {
         let args = vec![
-            "herdr".into(),
+            "panels".into(),
             "--remote".into(),
             "dev".into(),
             "--help".into(),
         ];
         let (cleaned, remote) = extract_remote_args(&args).unwrap();
-        assert_eq!(cleaned, vec!["herdr", "--help"]);
+        assert_eq!(cleaned, vec!["panels", "--help"]);
         assert_eq!(remote.unwrap().target, "dev");
     }
 
     #[test]
     fn extract_remote_args_removes_equals_form() {
-        let args = vec!["herdr".into(), "--remote=user@host".into()];
+        let args = vec!["panels".into(), "--remote=user@host".into()];
         let (cleaned, remote) = extract_remote_args(&args).unwrap();
-        assert_eq!(cleaned, vec!["herdr"]);
+        assert_eq!(cleaned, vec!["panels"]);
         assert_eq!(remote.unwrap().target, "user@host");
     }
 
     #[test]
     fn extract_remote_args_requires_value() {
-        let args = vec!["herdr".into(), "--remote".into()];
+        let args = vec!["panels".into(), "--remote".into()];
         let err = extract_remote_args(&args).unwrap_err();
         assert_eq!(err, "missing value for --remote");
     }
 
     #[test]
     fn extract_remote_args_rejects_empty_value() {
-        let args = vec!["herdr".into(), "--remote=".into()];
+        let args = vec!["panels".into(), "--remote=".into()];
         let err = extract_remote_args(&args).unwrap_err();
         assert_eq!(err, "missing value for --remote");
     }
@@ -877,7 +881,7 @@ mod tests {
     #[test]
     fn extract_remote_args_rejects_duplicate_values() {
         let args = vec![
-            "herdr".into(),
+            "panels".into(),
             "--remote=dev".into(),
             "--remote=prod".into(),
         ];
@@ -887,7 +891,11 @@ mod tests {
 
     #[test]
     fn extract_remote_args_rejects_option_like_target() {
-        let args = vec!["herdr".into(), "--remote".into(), "-oProxyCommand=x".into()];
+        let args = vec![
+            "panels".into(),
+            "--remote".into(),
+            "-oProxyCommand=x".into(),
+        ];
         let err = extract_remote_args(&args).unwrap_err();
         assert_eq!(err, "--remote target must not start with '-'");
     }
@@ -917,24 +925,24 @@ mod tests {
     #[test]
     fn reattach_command_includes_remote_and_session() {
         assert_eq!(
-            reattach_command("target/release/herdr", "user@host", "work"),
-            "target/release/herdr --remote user@host --session work"
+            reattach_command("target/release/panels", "user@host", "work"),
+            "target/release/panels --remote user@host --session work"
         );
         assert_eq!(
-            reattach_command("herdr", "host name", crate::session::DEFAULT_SESSION_NAME),
-            "herdr --remote 'host name'"
+            reattach_command("panels", "host name", crate::session::DEFAULT_SESSION_NAME),
+            "panels --remote 'host name'"
         );
     }
 
     #[test]
     fn remote_bridge_command_uses_installed_binary() {
-        let remote_herdr = RemoteHerdr::for_platform(RemotePlatform {
+        let remote_panels = RemotePanels::for_platform(RemotePlatform {
             os: "linux",
             arch: "x86_64",
         });
         assert_eq!(
-            remote_bridge_command(&remote_herdr, crate::session::DEFAULT_SESSION_NAME),
-            "exec \"$HOME/.local/bin/herdr\" remote-client-bridge"
+            remote_bridge_command(&remote_panels, crate::session::DEFAULT_SESSION_NAME),
+            "exec \"$HOME/.local/bin/panels\" remote-client-bridge"
         );
     }
 
@@ -945,8 +953,8 @@ mod tests {
             arch: "aarch64",
         };
         assert_eq!(
-            install_source_description(&platform, Some(Path::new("/tmp/herdr-aarch64"))),
-            "HERDR_REMOTE_BINARY (/tmp/herdr-aarch64)"
+            install_source_description(&platform, Some(Path::new("/tmp/panels-aarch64"))),
+            "PANELS_REMOTE_BINARY (/tmp/panels-aarch64)"
         );
     }
 
@@ -956,9 +964,9 @@ mod tests {
             os: "linux",
             arch: "aarch64",
         };
-        let source = resolve_install_source(&platform, Some(PathBuf::from("/tmp/herdr-aarch64")))
+        let source = resolve_install_source(&platform, Some(PathBuf::from("/tmp/panels-aarch64")))
             .expect("override source");
-        assert_eq!(source.path, PathBuf::from("/tmp/herdr-aarch64"));
+        assert_eq!(source.path, PathBuf::from("/tmp/panels-aarch64"));
         assert!(source.temporary_dir.is_none());
     }
 
@@ -984,7 +992,7 @@ mod tests {
             .unwrap_or("")
             .to_string();
         assert!(
-            filename.starts_with("herdr-remote-"),
+            filename.starts_with("panels-remote-"),
             "expected readable name, got {filename}"
         );
         assert!(filename.contains("-dev-default."), "got {filename}");
@@ -1041,7 +1049,7 @@ mod tests {
         assert!(fits, "fallback path still overflows: {}", path.display());
         assert_eq!(parent.as_deref(), Some(Path::new("/tmp")));
         assert!(
-            filename.starts_with("herdr-r-"),
+            filename.starts_with("panels-r-"),
             "expected hashed fallback, got {filename}"
         );
     }
@@ -1049,12 +1057,12 @@ mod tests {
     #[test]
     fn install_source_cleanup_removes_temporary_directory() {
         let dir = std::env::temp_dir().join(format!(
-            "herdr-install-source-cleanup-test-{}",
+            "panels-install-source-cleanup-test-{}",
             std::process::id()
         ));
         let _ = fs::remove_dir_all(&dir);
         fs::create_dir(&dir).expect("create temp dir");
-        let path = dir.join("herdr.tmp");
+        let path = dir.join("panels.tmp");
         fs::write(&path, b"test").expect("write temp file");
 
         InstallSource::temporary(path, dir.clone()).cleanup();

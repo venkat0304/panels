@@ -48,7 +48,7 @@ pub enum AppEvent {
         install_command: String,
     },
     /// A pane child emitted a valid OSC 52 clipboard write. The main loop
-    /// re-emits it through herdr's own clipboard writer.
+    /// re-emits it through panels's own clipboard writer.
     ClipboardWrite { content: Vec<u8> },
     /// Background git status refresh completed for workspaces.
     GitStatusRefreshed { results: Vec<WorkspaceGitStatus> },

@@ -826,7 +826,7 @@ mod tests {
             id: "req_hook".into(),
             method: Method::PaneReportAgent(PaneReportAgentParams {
                 pane_id: "1-1".into(),
-                source: "herdr:pi".into(),
+                source: "panels:pi".into(),
                 agent: "pi".into(),
                 state: PaneAgentState::Working,
                 message: Some("thinking".into()),
@@ -846,7 +846,7 @@ mod tests {
             id: "req_clear".into(),
             method: Method::PaneClearAgentAuthority(PaneClearAgentAuthorityParams {
                 pane_id: "1-1".into(),
-                source: Some("herdr:pi".into()),
+                source: Some("panels:pi".into()),
                 seq: Some(42),
             }),
         };
@@ -862,7 +862,7 @@ mod tests {
             id: "req_release".into(),
             method: Method::PaneReleaseAgent(PaneReleaseAgentParams {
                 pane_id: "1-1".into(),
-                source: "herdr:pi".into(),
+                source: "panels:pi".into(),
                 agent: "pi".into(),
                 seq: Some(42),
             }),

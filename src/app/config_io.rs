@@ -60,7 +60,7 @@ impl App {
     pub(super) fn save_toast_delivery(&mut self, delivery: crate::config::ToastDelivery) {
         let value = match delivery {
             crate::config::ToastDelivery::Off => "\"off\"",
-            crate::config::ToastDelivery::Herdr => "\"herdr\"",
+            crate::config::ToastDelivery::Panels => "\"panels\"",
             crate::config::ToastDelivery::Terminal => "\"terminal\"",
             crate::config::ToastDelivery::System => "\"system\"",
         };

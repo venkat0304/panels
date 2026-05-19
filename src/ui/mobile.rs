@@ -913,7 +913,7 @@ mod tests {
             ws_idx: 0,
             tab_idx: 0,
             pane_id: PaneId::from_raw(1),
-            primary_label: "herdr".into(),
+            primary_label: "panels".into(),
             primary_tab_label: primary_tab_label.map(str::to_string),
             agent_label: agent_label.map(str::to_string),
             state: AgentState::Idle,

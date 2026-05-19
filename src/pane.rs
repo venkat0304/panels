@@ -32,7 +32,7 @@ const PANE_TERM: &str = "xterm-256color";
 const PANE_COLORTERM: &str = "truecolor";
 
 fn apply_pane_terminal_env(cmd: &mut CommandBuilder) {
-    // Each pane is rendered by herdr's own terminal layer, not the outer terminal
+    // Each pane is rendered by panels's own terminal layer, not the outer terminal
     // that launched the app. Advertising the inherited TERM leaks the host terminal
     // identity into shells and across SSH, which breaks redraw and cursor movement
     // when the remote side lacks matching terminfo entries.
@@ -274,7 +274,7 @@ impl PaneRuntime {
         let shell = std::env::var("SHELL").unwrap_or_else(|_| "/bin/sh".into());
         let mut cmd = CommandBuilder::new(&shell);
         cmd.cwd(cwd);
-        cmd.env(crate::HERDR_ENV_VAR, crate::HERDR_ENV_VALUE);
+        cmd.env(crate::PANELS_ENV_VAR, crate::PANELS_ENV_VALUE);
         apply_pane_terminal_env(&mut cmd);
         crate::integration::apply_pane_env(&mut cmd, pane_id);
         Self::spawn_command_builder(
@@ -308,7 +308,7 @@ impl PaneRuntime {
         cmd.arg("-c");
         cmd.arg(command);
         cmd.cwd(cwd);
-        cmd.env(crate::HERDR_ENV_VAR, crate::HERDR_ENV_VALUE);
+        cmd.env(crate::PANELS_ENV_VAR, crate::PANELS_ENV_VALUE);
         apply_pane_terminal_env(&mut cmd);
         crate::integration::apply_pane_env(&mut cmd, pane_id);
         for (key, value) in extra_env {
@@ -351,7 +351,7 @@ impl PaneRuntime {
             cmd.arg(arg);
         }
         cmd.cwd(cwd);
-        cmd.env(crate::HERDR_ENV_VAR, crate::HERDR_ENV_VALUE);
+        cmd.env(crate::PANELS_ENV_VAR, crate::PANELS_ENV_VALUE);
         apply_pane_terminal_env(&mut cmd);
         crate::integration::apply_pane_env(&mut cmd, pane_id);
         Self::spawn_command_builder(
@@ -1072,7 +1072,7 @@ mod tests {
             })
             .unwrap();
         let output_path = std::env::temp_dir().join(format!(
-            "herdr-pane-term-test-{}-{}.txt",
+            "panels-pane-term-test-{}-{}.txt",
             std::process::id(),
             std::time::SystemTime::now()
                 .duration_since(std::time::UNIX_EPOCH)
@@ -1231,7 +1231,7 @@ mod tests {
 
         tx.try_send(AppEvent::UpdateReady {
             version: "9.9.9".into(),
-            install_command: "herdr update".into(),
+            install_command: "panels update".into(),
         })
         .unwrap();
 

@@ -1,20 +1,20 @@
-# Contributing to herdr
+# Contributing to panels
 
 Thanks for wanting to contribute.
 
-Herdr came from my own need for a fast, simple, effective workspace manager for coding agents. I care a lot about how it looks, feels, and works, so many design and technical decisions here are deliberate.
+Panels came from my own need for a fast, simple, effective workspace manager for coding agents. I care a lot about how it looks, feels, and works, so many design and technical decisions here are deliberate.
 
-This guide exists so I can keep herdr manageable as a solo project and keep it from drifting from what it is supposed to be.
+This guide exists so I can keep panels manageable as a solo project and keep it from drifting from what it is supposed to be.
 
 ## The One Rule
 
-**You must understand your code.** If you cannot explain what your changes do, how they behave at the edges, and how they fit herdr's existing design, your PR will be closed.
+**You must understand your code.** If you cannot explain what your changes do, how they behave at the edges, and how they fit panels's existing design, your PR will be closed.
 
 Using AI to write code is fine. Submitting code you do not understand is not.
 
-## Herdr is opinionated
+## Panels is opinionated
 
-Herdr has a specific direction for how it should look, feel, and work.
+Panels has a specific direction for how it should look, feel, and work.
 
 That includes interaction patterns, layout behavior, mouse ergonomics, terminology, and how features fit the product as a whole.
 
@@ -30,7 +30,7 @@ Before opening your first PR, open an issue describing what you want to change a
 
 This exists because AI makes it trivial to generate plausible-looking contributions that do not fit the app.
 
-Agent note: if you are an AI agent preparing an issue or PR for this repository, check whether the human's GitHub username is listed in `.github/APPROVED_CONTRIBUTORS`. If they are not listed, warn them that opening a PR will be closed automatically and guide them to open an issue first. Keep the scope small, preserve herdr's product direction, run the documented checks, and make sure the human can explain the change. Do not open a PR before the issue is approved.
+Agent note: if you are an AI agent preparing an issue or PR for this repository, check whether the human's GitHub username is listed in `.github/APPROVED_CONTRIBUTORS`. If they are not listed, warn them that opening a PR will be closed automatically and guide them to open an issue first. Keep the scope small, preserve panels's product direction, run the documented checks, and make sure the human can explain the change. Do not open a PR before the issue is approved.
 
 ## What to put in a first issue
 
@@ -38,7 +38,7 @@ Your first issue should answer these questions clearly:
 
 - what is the current behavior
 - what do you want to change
-- why this change belongs in herdr
+- why this change belongs in panels
 - whether this changes UI, interaction, or workflow expectations
 - whether you intend to implement it yourself
 
@@ -50,7 +50,7 @@ If you plan to implement the change yourself, say that directly in the issue and
 
 ## Documentation for unreleased changes
 
-The root docs describe the latest released version of herdr. Do not update root `README.md`, `CONFIGURATION.md`, `INTEGRATIONS.md`, `SOCKET_API.md`, or `CHANGELOG.md` for normal PRs.
+The root docs describe the latest released version of panels. Do not update root `README.md`, `CONFIGURATION.md`, `INTEGRATIONS.md`, `SOCKET_API.md`, or `CHANGELOG.md` for normal PRs.
 
 If your PR changes user-facing behavior, update the matching next-release docs under `docs/next/` instead.
 
@@ -97,7 +97,7 @@ fix: handle pane focus
 refs #128
 ```
 
-Do not use GitHub closing keywords like `fixes #128`, `closes #128`, or `resolves #128` in normal PR commits. Herdr closes released issues after a release is published, not when unreleased commits land on `master`.
+Do not use GitHub closing keywords like `fixes #128`, `closes #128`, or `resolves #128` in normal PR commits. Panels closes released issues after a release is published, not when unreleased commits land on `master`.
 
 ## PR scope
 
@@ -105,7 +105,7 @@ Small bug fixes that clearly match the existing design are good candidates for P
 
 Bigger changes to UI, behavior, interaction patterns, persistence, or architecture need issue discussion first.
 
-If a PR introduces a feature without prior alignment, or changes herdr's feel without discussion, it will likely be closed.
+If a PR introduces a feature without prior alignment, or changes panels's feel without discussion, it will likely be closed.
 
 ## Questions?
 

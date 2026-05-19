@@ -7,7 +7,7 @@ use super::{CommandKeybindConfig, SoundConfig, ThemeConfig, DEFAULT_SCROLLBACK_L
 pub enum ToastDelivery {
     #[default]
     Off,
-    Herdr,
+    Panels,
     Terminal,
     System,
 }
@@ -147,7 +147,7 @@ pub struct IndexedKeysConfig {
 #[serde(default)]
 pub struct UiConfig {
     pub sidebar_width: u16,
-    /// Capture mouse input for Herdr's mouse UI. Default: true.
+    /// Capture mouse input for Panels's mouse UI. Default: true.
     pub mouse_capture: bool,
     /// Ask for confirmation before closing a workspace. Default: true.
     pub confirm_close: bool,
@@ -177,7 +177,7 @@ pub struct AdvancedConfig {
 #[derive(Debug, Default, Deserialize)]
 #[serde(default)]
 pub struct ExperimentalConfig {
-    /// Allow launching herdr inside an existing herdr pane. Default: false.
+    /// Allow launching panels inside an existing panels pane. Default: false.
     pub allow_nested: bool,
     /// Experimental local Kitty graphics rendering for attached clients. Default: false.
     pub kitty_graphics: bool,
@@ -258,7 +258,7 @@ impl<'de> Deserialize<'de> for ToastConfig {
 
         let raw = RawToastConfig::deserialize(deserializer)?;
         let legacy_delivery = match raw.enabled {
-            Some(true) => ToastDelivery::Herdr,
+            Some(true) => ToastDelivery::Panels,
             Some(false) | None => ToastDelivery::Off,
         };
         let delivery = raw.delivery.unwrap_or(legacy_delivery);
@@ -348,13 +348,13 @@ delivery = "system"
     }
 
     #[test]
-    fn toast_config_legacy_enabled_true_maps_to_herdr() {
+    fn toast_config_legacy_enabled_true_maps_to_panels() {
         let toml = r#"
 [ui.toast]
 enabled = true
 "#;
         let config: Config = toml::from_str(toml).unwrap();
-        assert_eq!(config.ui.toast.delivery, ToastDelivery::Herdr);
+        assert_eq!(config.ui.toast.delivery, ToastDelivery::Panels);
     }
 
     #[test]

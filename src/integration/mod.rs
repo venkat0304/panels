@@ -9,23 +9,23 @@ use serde_json::{json, Map, Value};
 
 use crate::layout::PaneId;
 
-pub(crate) const HERDR_PANE_ID_ENV_VAR: &str = "HERDR_PANE_ID";
-const PI_EXTENSION_INSTALL_NAME: &str = "herdr-agent-state.ts";
-const PI_EXTENSION_ASSET: &str = include_str!("assets/pi/herdr-agent-state.ts");
+pub(crate) const PANELS_PANE_ID_ENV_VAR: &str = "PANELS_PANE_ID";
+const PI_EXTENSION_INSTALL_NAME: &str = "panels-agent-state.ts";
+const PI_EXTENSION_ASSET: &str = include_str!("assets/pi/panels-agent-state.ts");
 const PI_INTEGRATION_VERSION: u32 = 1;
 const PI_CODING_AGENT_DIR_ENV_VAR: &str = "PI_CODING_AGENT_DIR";
-const CLAUDE_HOOK_INSTALL_NAME: &str = "herdr-agent-state.sh";
-const CLAUDE_HOOK_ASSET: &str = include_str!("assets/claude/herdr-agent-state.sh");
+const CLAUDE_HOOK_INSTALL_NAME: &str = "panels-agent-state.sh";
+const CLAUDE_HOOK_ASSET: &str = include_str!("assets/claude/panels-agent-state.sh");
 const CLAUDE_INTEGRATION_VERSION: u32 = 1;
 const CLAUDE_CONFIG_DIR_ENV_VAR: &str = "CLAUDE_CONFIG_DIR";
-const CODEX_HOOK_INSTALL_NAME: &str = "herdr-agent-state.sh";
-const CODEX_HOOK_ASSET: &str = include_str!("assets/codex/herdr-agent-state.sh");
+const CODEX_HOOK_INSTALL_NAME: &str = "panels-agent-state.sh";
+const CODEX_HOOK_ASSET: &str = include_str!("assets/codex/panels-agent-state.sh");
 const CODEX_INTEGRATION_VERSION: u32 = 2;
 const CODEX_HOME_ENV_VAR: &str = "CODEX_HOME";
-const OPENCODE_PLUGIN_INSTALL_NAME: &str = "herdr-agent-state.js";
-const OPENCODE_PLUGIN_ASSET: &str = include_str!("assets/opencode/herdr-agent-state.js");
+const OPENCODE_PLUGIN_INSTALL_NAME: &str = "panels-agent-state.js";
+const OPENCODE_PLUGIN_ASSET: &str = include_str!("assets/opencode/panels-agent-state.js");
 const OPENCODE_INTEGRATION_VERSION: u32 = 1;
-const INTEGRATION_VERSION_MARKER: &str = "HERDR_INTEGRATION_VERSION=";
+const INTEGRATION_VERSION_MARKER: &str = "PANELS_INTEGRATION_VERSION=";
 
 #[derive(Debug)]
 pub(crate) struct ClaudeInstallPaths {
@@ -92,7 +92,7 @@ pub(crate) struct OpenCodeUninstallResult {
 
 pub(crate) fn apply_pane_env(cmd: &mut CommandBuilder, pane_id: PaneId) {
     cmd.env(crate::api::SOCKET_PATH_ENV_VAR, crate::api::socket_path());
-    cmd.env(HERDR_PANE_ID_ENV_VAR, format!("p_{}", pane_id.raw()));
+    cmd.env(PANELS_PANE_ID_ENV_VAR, format!("p_{}", pane_id.raw()));
 }
 
 pub(crate) fn install_target(
@@ -177,12 +177,12 @@ pub(crate) fn uninstall_target(
             }
             if result.updated_settings {
                 messages.push(format!(
-                    "removed herdr claude hook entries from {}",
+                    "removed panels claude hook entries from {}",
                     result.settings_path.display()
                 ));
             } else {
                 messages.push(format!(
-                    "no herdr claude hook entries found in {}",
+                    "no panels claude hook entries found in {}",
                     result.settings_path.display()
                 ));
             }
@@ -204,12 +204,12 @@ pub(crate) fn uninstall_target(
             }
             if result.updated_hooks {
                 messages.push(format!(
-                    "removed herdr codex hook entries from {}",
+                    "removed panels codex hook entries from {}",
                     result.hooks_path.display()
                 ));
             } else {
                 messages.push(format!(
-                    "no herdr codex hook entries found in {}",
+                    "no panels codex hook entries found in {}",
                     result.hooks_path.display()
                 ));
             }
@@ -302,7 +302,7 @@ pub(crate) fn integration_update_instructions(
         .iter()
         .map(|target| {
             format!(
-                "`herdr integration install {}`",
+                "`panels integration install {}`",
                 integration_target_label(*target)
             )
         })
@@ -326,7 +326,7 @@ pub(crate) fn print_outdated_update_notice() -> bool {
         .map(|integration| integration.target)
         .collect::<Vec<_>>();
     eprintln!(
-        "installed herdr integrations need updating; {}.",
+        "installed panels integrations need updating; {}.",
         integration_update_instructions(&targets).replace('`', "")
     );
     true
@@ -1078,7 +1078,7 @@ mod tests {
     fn unique_base() -> PathBuf {
         clear_integration_path_env();
         std::env::temp_dir().join(format!(
-            "herdr-integration-install-test-{}-{}",
+            "panels-integration-install-test-{}-{}",
             std::process::id(),
             std::time::SystemTime::now()
                 .duration_since(std::time::UNIX_EPOCH)
@@ -1173,7 +1173,7 @@ mod tests {
         let ext_dir = home.join(".pi/agent/extensions");
         fs::create_dir_all(&ext_dir).unwrap();
         let extension_path = ext_dir.join(PI_EXTENSION_INSTALL_NAME);
-        fs::write(&extension_path, "// installed by herdr\n").unwrap();
+        fs::write(&extension_path, "// installed by panels\n").unwrap();
         std::env::set_var("HOME", &home);
 
         let outdated = outdated_installed_integrations();
@@ -1365,7 +1365,7 @@ mod tests {
     }
 
     #[test]
-    fn uninstall_claude_removes_herdr_hooks_and_preserves_others() {
+    fn uninstall_claude_removes_panels_hooks_and_preserves_others() {
         let _lock = integration_env_lock();
         let base = unique_base();
         let home = base.join("home");
@@ -1563,7 +1563,7 @@ mod tests {
     }
 
     #[test]
-    fn uninstall_codex_removes_herdr_hooks_and_leaves_config_alone() {
+    fn uninstall_codex_removes_panels_hooks_and_leaves_config_alone() {
         let _lock = integration_env_lock();
         let base = unique_base();
         let home = base.join("home");

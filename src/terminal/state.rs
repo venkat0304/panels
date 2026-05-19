@@ -386,7 +386,7 @@ mod tests {
         let mut terminal = test_terminal();
         terminal.set_detected_state(Some(Agent::Pi), AgentState::Idle);
         terminal.set_hook_authority(
-            "herdr:pi".into(),
+            "panels:pi".into(),
             "pi".into(),
             AgentState::Working,
             None,
@@ -404,7 +404,7 @@ mod tests {
         let mut terminal = test_terminal();
         terminal.set_detected_state(Some(Agent::Pi), AgentState::Idle);
         terminal.set_hook_authority(
-            "herdr:custom".into(),
+            "panels:custom".into(),
             "hermes".into(),
             AgentState::Working,
             None,
@@ -442,7 +442,7 @@ mod tests {
         let mut terminal = test_terminal();
         terminal.set_detected_state(Some(Agent::Pi), AgentState::Idle);
         terminal.set_hook_authority(
-            "herdr:custom".into(),
+            "panels:custom".into(),
             "hermes".into(),
             AgentState::Working,
             None,
@@ -462,7 +462,7 @@ mod tests {
         let mut terminal = test_terminal();
         terminal.set_detected_state(Some(Agent::OpenCode), AgentState::Idle);
         terminal.set_hook_authority(
-            "herdr:opencode".into(),
+            "panels:opencode".into(),
             "opencode".into(),
             AgentState::Idle,
             None,
@@ -483,7 +483,7 @@ mod tests {
         let mut terminal = test_terminal();
         terminal.set_detected_state(Some(Agent::Codex), AgentState::Idle);
         terminal.set_hook_authority(
-            "herdr:codex".into(),
+            "panels:codex".into(),
             "codex".into(),
             AgentState::Idle,
             None,
@@ -503,14 +503,14 @@ mod tests {
         let mut terminal = test_terminal();
         terminal.set_detected_state(Some(Agent::Pi), AgentState::Idle);
         terminal.set_hook_authority(
-            "herdr:pi".into(),
+            "panels:pi".into(),
             "pi".into(),
             AgentState::Working,
             None,
             None,
         );
 
-        terminal.release_agent("herdr:pi", "pi", None);
+        terminal.release_agent("panels:pi", "pi", None);
 
         assert!(terminal.hook_authority.is_none());
         assert_eq!(terminal.detected_agent, None);
@@ -522,7 +522,7 @@ mod tests {
     fn stale_hook_report_sequence_is_ignored_for_same_source() {
         let mut terminal = test_terminal();
         terminal.set_hook_authority(
-            "herdr:pi".into(),
+            "panels:pi".into(),
             "pi".into(),
             AgentState::Working,
             None,
@@ -530,7 +530,7 @@ mod tests {
         );
 
         let change = terminal.set_hook_authority(
-            "herdr:pi".into(),
+            "panels:pi".into(),
             "pi".into(),
             AgentState::Idle,
             None,
@@ -549,7 +549,7 @@ mod tests {
     fn unsequenced_hook_report_is_ignored_after_source_uses_sequence() {
         let mut terminal = test_terminal();
         terminal.set_hook_authority(
-            "herdr:pi".into(),
+            "panels:pi".into(),
             "pi".into(),
             AgentState::Working,
             None,
@@ -557,7 +557,7 @@ mod tests {
         );
 
         let change = terminal.set_hook_authority(
-            "herdr:pi".into(),
+            "panels:pi".into(),
             "pi".into(),
             AgentState::Idle,
             None,
@@ -572,14 +572,14 @@ mod tests {
     fn stale_release_sequence_is_ignored_for_same_source() {
         let mut terminal = test_terminal();
         terminal.set_hook_authority(
-            "herdr:pi".into(),
+            "panels:pi".into(),
             "pi".into(),
             AgentState::Working,
             None,
             Some(20),
         );
 
-        let change = terminal.release_agent("herdr:pi", "pi", Some(19));
+        let change = terminal.release_agent("panels:pi", "pi", Some(19));
 
         assert!(change.is_none());
         assert_eq!(terminal.state, AgentState::Working);
@@ -590,7 +590,7 @@ mod tests {
     fn stale_clear_all_sequence_is_checked_against_current_authority_source() {
         let mut terminal = test_terminal();
         terminal.set_hook_authority(
-            "herdr:pi".into(),
+            "panels:pi".into(),
             "pi".into(),
             AgentState::Working,
             None,
@@ -608,7 +608,7 @@ mod tests {
     fn same_sequence_from_different_sources_is_independent() {
         let mut terminal = test_terminal();
         terminal.set_hook_authority(
-            "herdr:pi".into(),
+            "panels:pi".into(),
             "pi".into(),
             AgentState::Working,
             None,

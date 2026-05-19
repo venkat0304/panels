@@ -1313,7 +1313,7 @@ mod tests {
 
     #[test]
     fn amp_idle() {
-        let screen = "  Response complete.\n\n╭─100% of 272k · $1.20─────────────────────────╮\n│                                               │\n╰───────────────────────~/Projects/herdr (master)╯";
+        let screen = "  Response complete.\n\n╭─100% of 272k · $1.20─────────────────────────╮\n│                                               │\n╰───────────────────────~/Projects/panels (master)╯";
         assert_eq!(detect_state(Some(Agent::Amp), screen), AgentState::Idle);
     }
 

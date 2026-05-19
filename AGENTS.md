@@ -1,4 +1,4 @@
-# herdr
+# panels
 
 Terminal workspace manager for AI coding agents. Rust + ratatui.
 
@@ -9,7 +9,7 @@ Terminal workspace manager for AI coding agents. Rust + ratatui.
 - **No god objects.** If a module is doing too many things, split it. `app/` is already split into state, actions, and input. Keep it that way.
 - **Platform code is isolated.** OS-specific behavior lives in `src/platform/`. Core modules don't have `#[cfg(target_os)]`.
 - **Detection is decoupled.** The detector reads a screen snapshot, never touches the parser or viewport state.
-- **UI patterns should be reused.** Herdr is a mouse-first TUI. New dialogs, onboarding, settings, and post-update flows should follow the existing UI/UX language and interaction patterns instead of inventing one-off screens. Prefer reusing existing modal/screen structure, affordances, and close actions so the app feels consistent.
+- **UI patterns should be reused.** Panels is a mouse-first TUI. New dialogs, onboarding, settings, and post-update flows should follow the existing UI/UX language and interaction patterns instead of inventing one-off screens. Prefer reusing existing modal/screen structure, affordances, and close actions so the app feels consistent.
 
 ## Multi-agent isolation
 
@@ -19,15 +19,15 @@ Small changes or small tasks are fine in the default main worktree. If you find 
 
 Use this layout:
 
-- shared integration checkout: `../herdr`
-- task worktrees: `../herdr-worktrees/<task-slug>`
+- shared integration checkout: `../panels`
+- task worktrees: `../panels-worktrees/<task-slug>`
 - task branches: `issue/<id>-<slug>` when an issue exists
 
 Do all code edits, tests, and validation inside the task worktree.
 
 Commit on the task branch in that worktree.
 
-When the change is ready, fast-forward the shared checkout at `../herdr` to the task branch commit, then push `origin/master` from `../herdr`. Do not treat the task branch as the final landing branch.
+When the change is ready, fast-forward the shared checkout at `../panels` to the task branch commit, then push `origin/master` from `../panels`. Do not treat the task branch as the final landing branch.
 
 If the current session is already inside an isolated task worktree, keep using it. Do not create nested worktrees.
 
@@ -83,10 +83,10 @@ just release 0.x.y
 
 The release workflow must publish these four assets:
 
-- `herdr-linux-x86_64`
-- `herdr-linux-aarch64`
-- `herdr-macos-x86_64`
-- `herdr-macos-aarch64`
+- `panels-linux-x86_64`
+- `panels-linux-aarch64`
+- `panels-macos-x86_64`
+- `panels-macos-aarch64`
 
 `website/latest.json` is the shipped updater source of truth. Keep its schema aligned with `src/update.rs`:
 
@@ -107,4 +107,4 @@ The app update check and the in-app **What's New** flow both depend on that exac
 
 Do not edit `website/latest.json` during normal feature, fix, or test work. It describes the latest published release binaries, not the current unreleased source tree. The release workflow updates it after release assets are published.
 
-When changing the server/client wire protocol, compare `src/server/protocol.rs::PROTOCOL_VERSION` against the latest released tag. Bump it only if the current source protocol is not already greater than the latest released protocol. Multiple unreleased wire changes in the same release cycle must share the same single protocol bump; Herdr supports tagged releases, not arbitrary `master` client/server compatibility. When a bump is required, update all hardcoded protocol expectations and manual protocol fixtures in tests. Keep protocol test expectations intentionally explicit so compatibility changes are reviewed instead of silently following the constant.
+When changing the server/client wire protocol, compare `src/server/protocol.rs::PROTOCOL_VERSION` against the latest released tag. Bump it only if the current source protocol is not already greater than the latest released protocol. Multiple unreleased wire changes in the same release cycle must share the same single protocol bump; Panels supports tagged releases, not arbitrary `master` client/server compatibility. When a bump is required, update all hardcoded protocol expectations and manual protocol fixtures in tests. Keep protocol test expectations intentionally explicit so compatibility changes are reviewed instead of silently following the constant.

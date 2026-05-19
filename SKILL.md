@@ -1,11 +1,11 @@
 ---
-name: herdr
-description: "Control herdr from inside it. Manage workspaces and tabs, split panes, spawn agents, read output, and wait for state changes — all via CLI commands that talk to the running herdr instance over a local unix socket. Use when running inside herdr (HERDR_ENV=1)."
+name: panels
+description: "Control panels from inside it. Manage workspaces and tabs, split panes, spawn agents, read output, and wait for state changes — all via CLI commands that talk to the running panels instance over a local unix socket. Use when running inside panels (PANELS_ENV=1)."
 ---
 
-# herdr — agent skill
+# panels — agent skill
 
-you are running inside herdr, a terminal-native agent multiplexer. herdr gives you workspaces, tabs, and panes — each pane is a real terminal with its own shell, agent, server, or log stream — and you can control all of it from the cli.
+you are running inside panels, a terminal-native agent multiplexer. panels gives you workspaces, tabs, and panes — each pane is a real terminal with its own shell, agent, server, or log stream — and you can control all of it from the cli.
 
 this means you can:
 
@@ -17,7 +17,7 @@ this means you can:
 - wait for another agent to finish
 - spawn more agent instances
 
-the `herdr` binary is available in your PATH. its workspace, tab, pane, and wait commands talk to the running herdr instance over a local unix socket.
+the `panels` binary is available in your PATH. its workspace, tab, pane, and wait commands talk to the running panels instance over a local unix socket.
 
 if you need the raw protocol or full api reference, read [`SOCKET_API.md`](./SOCKET_API.md).
 
@@ -29,13 +29,13 @@ if you need the raw protocol or full api reference, read [`SOCKET_API.md`](./SOC
 
 **panes** are terminal splits inside a tab. each pane runs its own process — a shell, an agent, a server, anything.
 
-**agent status** is detected automatically by herdr. the api exposes one public field for it:
+**agent status** is detected automatically by panels. the api exposes one public field for it:
 
 - `agent_status` — `idle`, `working`, `blocked`, `done`, `unknown`
 
 `done` means the agent finished, but you have not looked at that finished pane yet.
 
-plain shells still exist as panes, but herdr's sidebar agent section intentionally focuses on detected agents rather than listing every shell.
+plain shells still exist as panes, but panels's sidebar agent section intentionally focuses on detected agents rather than listing every shell.
 
 **ids** — workspace ids look like `1`, `2`. tab ids look like `1:1`, `1:2`, `2:1`. pane ids look like `1-1`, `1-2`, `2-1`. these are compact public ids for the current live session.
 
@@ -46,7 +46,7 @@ important: ids can compact when tabs, panes, or workspaces are closed. do not tr
 see what panes exist and which one is focused:
 
 ```bash
-herdr pane list
+panels pane list
 ```
 
 the focused pane is yours. other panes are your neighbors.
@@ -54,7 +54,7 @@ the focused pane is yours. other panes are your neighbors.
 list workspaces:
 
 ```bash
-herdr workspace list
+panels workspace list
 ```
 
 ## tab management
@@ -62,13 +62,13 @@ herdr workspace list
 list tabs in the current workspace:
 
 ```bash
-herdr tab list --workspace 1
+panels tab list --workspace 1
 ```
 
 create a new tab:
 
 ```bash
-herdr tab create --workspace 1
+panels tab create --workspace 1
 ```
 
 without `--label`, the new tab keeps the default numbered tab name.
@@ -76,25 +76,25 @@ without `--label`, the new tab keeps the default numbered tab name.
 create and name it in one step:
 
 ```bash
-herdr tab create --workspace 1 --label "logs"
+panels tab create --workspace 1 --label "logs"
 ```
 
 rename it:
 
 ```bash
-herdr tab rename 1:2 "logs"
+panels tab rename 1:2 "logs"
 ```
 
 focus it:
 
 ```bash
-herdr tab focus 1:2
+panels tab focus 1:2
 ```
 
 close it:
 
 ```bash
-herdr tab close 1:2
+panels tab close 1:2
 ```
 
 ## read another pane
@@ -102,7 +102,7 @@ herdr tab close 1:2
 see what is on another pane's screen:
 
 ```bash
-herdr pane read 1-1 --source recent --lines 50
+panels pane read 1-1 --source recent --lines 50
 ```
 
 - `--source visible` = current viewport
@@ -114,20 +114,20 @@ herdr pane read 1-1 --source recent --lines 50
 split your pane to the right and keep focus on your current pane:
 
 ```bash
-herdr pane split 1-2 --direction right --no-focus
+panels pane split 1-2 --direction right --no-focus
 ```
 
 that prints json with the new pane nested at `result.pane.pane_id`. parse that value, then run a command in that pane:
 
 ```bash
-NEW_PANE=$(herdr pane split 1-2 --direction right --no-focus | python3 -c 'import sys,json; print(json.load(sys.stdin)["result"]["pane"]["pane_id"])')
-herdr pane run "$NEW_PANE" "npm run dev"
+NEW_PANE=$(panels pane split 1-2 --direction right --no-focus | python3 -c 'import sys,json; print(json.load(sys.stdin)["result"]["pane"]["pane_id"])')
+panels pane run "$NEW_PANE" "npm run dev"
 ```
 
 split downward instead:
 
 ```bash
-herdr pane split 1-2 --direction down --no-focus
+panels pane split 1-2 --direction down --no-focus
 ```
 
 ## wait for output
@@ -137,13 +137,13 @@ block until specific text appears in a pane. useful for waiting on servers, buil
 for `--source recent`, matching uses unwrapped recent terminal text, so pane width and soft wrapping do not break matches. `pane read --source recent` still shows the pane as rendered. if you want to inspect the same transcript that the waiter matches, use `pane read --source recent-unwrapped`.
 
 ```bash
-herdr wait output 1-3 --match "ready on port 3000" --timeout 30000
+panels wait output 1-3 --match "ready on port 3000" --timeout 30000
 ```
 
 with regex:
 
 ```bash
-herdr wait output 1-3 --match "server.*ready" --regex --timeout 30000
+panels wait output 1-3 --match "server.*ready" --regex --timeout 30000
 ```
 
 if it times out, exit code is `1`.
@@ -153,7 +153,7 @@ if it times out, exit code is `1`.
 block until another agent reaches a specific status:
 
 ```bash
-herdr wait agent-status 1-1 --status done --timeout 60000
+panels wait agent-status 1-1 --status done --timeout 60000
 ```
 
 use this when you want the same `done` / `idle` distinction the UI shows.
@@ -163,19 +163,19 @@ use this when you want the same `done` / `idle` distinction the UI shows.
 send text without pressing Enter:
 
 ```bash
-herdr pane send-text 1-1 "hello from claude"
+panels pane send-text 1-1 "hello from claude"
 ```
 
 press Enter or other keys:
 
 ```bash
-herdr pane send-keys 1-1 Enter
+panels pane send-keys 1-1 Enter
 ```
 
 `pane run` sends the text and then a real `Enter` key in one request:
 
 ```bash
-herdr pane run 1-1 "echo hello"
+panels pane run 1-1 "echo hello"
 ```
 
 ## workspace management
@@ -183,7 +183,7 @@ herdr pane run 1-1 "echo hello"
 create a new workspace:
 
 ```bash
-herdr workspace create --cwd /path/to/project
+panels workspace create --cwd /path/to/project
 ```
 
 without `--label`, the new workspace keeps the default cwd-based name.
@@ -191,37 +191,37 @@ without `--label`, the new workspace keeps the default cwd-based name.
 create and name one in one step:
 
 ```bash
-herdr workspace create --cwd /path/to/project --label "api server"
+panels workspace create --cwd /path/to/project --label "api server"
 ```
 
 create one without focusing it:
 
 ```bash
-herdr workspace create --no-focus
+panels workspace create --no-focus
 ```
 
 focus a workspace:
 
 ```bash
-herdr workspace focus 2
+panels workspace focus 2
 ```
 
 rename:
 
 ```bash
-herdr workspace rename 1 "api server"
+panels workspace rename 1 "api server"
 ```
 
 close:
 
 ```bash
-herdr workspace close 2
+panels workspace close 2
 ```
 
 ## close a pane
 
 ```bash
-herdr pane close 1-3
+panels pane close 1-3
 ```
 
 ## recipes
@@ -229,26 +229,26 @@ herdr pane close 1-3
 ### run a server and wait until it is ready
 
 ```bash
-NEW_PANE=$(herdr pane split 1-2 --direction right --no-focus | python3 -c 'import sys,json; print(json.load(sys.stdin)["result"]["pane"]["pane_id"])')
-herdr pane run "$NEW_PANE" "npm run dev"
-herdr wait output "$NEW_PANE" --match "ready" --timeout 30000
-herdr pane read "$NEW_PANE" --source recent --lines 20
+NEW_PANE=$(panels pane split 1-2 --direction right --no-focus | python3 -c 'import sys,json; print(json.load(sys.stdin)["result"]["pane"]["pane_id"])')
+panels pane run "$NEW_PANE" "npm run dev"
+panels wait output "$NEW_PANE" --match "ready" --timeout 30000
+panels pane read "$NEW_PANE" --source recent --lines 20
 ```
 
 ### run tests in a separate pane and inspect the result
 
 ```bash
-herdr pane split 1-2 --direction down --no-focus
-herdr pane run 1-3 "cargo test"
-herdr wait output 1-3 --match "test result" --timeout 60000
-herdr pane read 1-3 --source recent --lines 30
+panels pane split 1-2 --direction down --no-focus
+panels pane run 1-3 "cargo test"
+panels wait output 1-3 --match "test result" --timeout 60000
+panels pane read 1-3 --source recent --lines 30
 ```
 
 ### check what another agent is working on
 
 ```bash
-herdr pane list
-herdr pane read 1-1 --source recent --lines 80
+panels pane list
+panels pane read 1-1 --source recent --lines 80
 ```
 
 ### watch another pane robustly
@@ -257,30 +257,30 @@ use this pattern when you need to coordinate with a sibling pane:
 
 ```bash
 # inspect what is already there
-herdr pane read 1-3 --source recent --lines 40
+panels pane read 1-3 --source recent --lines 40
 
 # wait only for the next output you expect
-herdr wait output 1-3 --match "ready" --timeout 30000
+panels wait output 1-3 --match "ready" --timeout 30000
 
 # if you need to inspect the same transcript the waiter matched,
 # read the unwrapped recent text directly
-herdr pane read 1-3 --source recent-unwrapped --lines 40
+panels pane read 1-3 --source recent-unwrapped --lines 40
 ```
 
 ### spawn a new agent and give it a task
 
 ```bash
-herdr pane split 1-2 --direction right --no-focus
-herdr pane run 1-3 "claude"
-herdr wait output 1-3 --match ">" --timeout 15000
-herdr pane run 1-3 "review the test coverage in src/api/"
+panels pane split 1-2 --direction right --no-focus
+panels pane run 1-3 "claude"
+panels wait output 1-3 --match ">" --timeout 15000
+panels pane run 1-3 "review the test coverage in src/api/"
 ```
 
 ### coordinate with another agent
 
 ```bash
-herdr wait agent-status 1-1 --status done --timeout 120000
-herdr pane read 1-1 --source recent --lines 100
+panels wait agent-status 1-1 --status done --timeout 120000
+panels pane read 1-1 --source recent --lines 100
 ```
 
 ## notes
@@ -295,4 +295,4 @@ herdr pane read 1-1 --source recent --lines 100
 - `--no-focus` on split, tab create, and workspace create keeps your current terminal context focused.
 - without `--label`, workspace create keeps cwd-based naming and tab create keeps numbered naming.
 - `--label` on tab create and workspace create applies the custom name immediately.
-- if you are running inside herdr, the `HERDR_ENV` environment variable is set to `1`.
+- if you are running inside panels, the `PANELS_ENV` environment variable is set to `1`.

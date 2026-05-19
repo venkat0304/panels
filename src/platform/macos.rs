@@ -686,16 +686,16 @@ mod tests {
     #[test]
     fn terminal_notifier_success_skips_osascript() {
         let path = std::env::temp_dir().join(format!(
-            "herdr-terminal-notifier-args-{}",
+            "panels-terminal-notifier-args-{}",
             std::process::id()
         ));
-        let script = "printf '%s:%s\\n' \"$0\" \"$*\" >> \"$HERDR_NOTIFY_ARGS\"";
+        let script = "printf '%s:%s\\n' \"$0\" \"$*\" >> \"$PANELS_NOTIFY_ARGS\"";
         let mut command = |program: &str| {
             let mut cmd = Command::new("sh");
             cmd.arg("-c")
                 .arg(script)
                 .arg(program)
-                .env("HERDR_NOTIFY_ARGS", &path);
+                .env("PANELS_NOTIFY_ARGS", &path);
             cmd
         };
 
@@ -718,19 +718,19 @@ mod tests {
     #[test]
     fn desktop_notification_falls_back_to_osascript_when_terminal_notifier_fails() {
         let path =
-            std::env::temp_dir().join(format!("herdr-osascript-args-{}", std::process::id()));
+            std::env::temp_dir().join(format!("panels-osascript-args-{}", std::process::id()));
         let script = r#"
 if [ "$0" = "terminal-notifier" ]; then
   exit 1
 fi
-printf '%s\n' "$@" > "$HERDR_NOTIFY_ARGS"
+printf '%s\n' "$@" > "$PANELS_NOTIFY_ARGS"
 "#;
         let mut command = |program: &str| {
             let mut cmd = Command::new("sh");
             cmd.arg("-c")
                 .arg(script)
                 .arg(program)
-                .env("HERDR_NOTIFY_ARGS", &path);
+                .env("PANELS_NOTIFY_ARGS", &path);
             cmd
         };
         let shown = show_desktop_notification_with_command("title", Some("body"), &mut command)
