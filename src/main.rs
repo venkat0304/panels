@@ -26,6 +26,7 @@ mod config;
 mod detect;
 mod events;
 mod ghostty;
+mod image_view;
 mod input;
 mod integration;
 mod ipc;
