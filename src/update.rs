@@ -17,7 +17,11 @@ use std::time::{Duration, Instant};
 
 use serde::Deserialize;
 
-const UPDATE_MANIFEST_URL: &str = "https://panels.dev/latest.json";
+// Fork-hosted manifest served straight off the repo — no separate
+// domain needed. raw.githubusercontent.com fronts a CDN with a ~5 min
+// cache, which is fine for a startup update check.
+const UPDATE_MANIFEST_URL: &str =
+    "https://raw.githubusercontent.com/venkat0304/panels/master/website/latest.json";
 const HOMEBREW_FORMULA_API_URL: &str = "https://formulae.brew.sh/api/formula/panels.json";
 const PANELS_UPDATE_COMMAND: &str = "panels update";
 const HOMEBREW_UPDATE_COMMAND: &str = "brew update && brew upgrade panels";
