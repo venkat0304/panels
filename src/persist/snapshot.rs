@@ -27,6 +27,15 @@ pub struct SessionSnapshot {
     pub sidebar_section_split: Option<f32>,
     #[serde(default)]
     pub files_section_split: Option<f32>,
+    #[serde(default)]
+    pub actions: Option<Vec<ActionSnapshot>>,
+}
+
+/// Persisted form of a user-defined ACTION (live status is not saved).
+#[derive(Serialize, Deserialize, Clone)]
+pub struct ActionSnapshot {
+    pub name: String,
+    pub command: String,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -134,6 +143,8 @@ struct RawSessionSnapshot {
     sidebar_section_split: Option<f32>,
     #[serde(default)]
     files_section_split: Option<f32>,
+    #[serde(default)]
+    actions: Option<Vec<ActionSnapshot>>,
 }
 
 fn migrate_snapshot(raw: RawSessionSnapshot) -> Result<SessionSnapshot, String> {
@@ -150,6 +161,7 @@ fn migrate_snapshot(raw: RawSessionSnapshot) -> Result<SessionSnapshot, String> 
         sidebar_width: raw.sidebar_width,
         sidebar_section_split: raw.sidebar_section_split,
         files_section_split: raw.files_section_split,
+        actions: raw.actions,
     })
 }
 
@@ -216,6 +228,7 @@ pub fn capture(
     sidebar_width: u16,
     sidebar_section_split: f32,
     files_section_split: f32,
+    actions: &[crate::app::state::ActionItem],
 ) -> SessionSnapshot {
     SessionSnapshot {
         version: SNAPSHOT_VERSION,
@@ -229,6 +242,15 @@ pub fn capture(
         sidebar_width: Some(sidebar_width),
         sidebar_section_split: Some(sidebar_section_split),
         files_section_split: Some(files_section_split),
+        actions: Some(
+            actions
+                .iter()
+                .map(|a| ActionSnapshot {
+                    name: a.name.clone(),
+                    command: a.command.clone(),
+                })
+                .collect(),
+        ),
     }
 }
 
@@ -390,6 +412,7 @@ mod tests {
             state.sidebar_width,
             state.sidebar_section_split,
             state.files_section_split,
+            &state.actions,
         )
     }
 
@@ -411,6 +434,7 @@ mod tests {
             sidebar_width: Some(26),
             sidebar_section_split: Some(0.5),
             files_section_split: Some(0.35),
+            actions: None,
         };
         let json = serde_json::to_string(&snap).unwrap();
         let restored = parse_snapshot(&json).unwrap();
@@ -488,6 +512,7 @@ mod tests {
             sidebar_width: Some(26),
             sidebar_section_split: Some(0.5),
             files_section_split: Some(0.35),
+            actions: None,
             version: SNAPSHOT_VERSION,
         };
 
@@ -814,6 +839,7 @@ mod tests {
             sidebar_width: Some(26),
             sidebar_section_split: Some(0.5),
             files_section_split: Some(0.35),
+            actions: None,
         };
 
         let json = serde_json::to_string(&snap).unwrap();

@@ -20,7 +20,9 @@ mod status;
 mod tabs;
 mod widgets;
 
-use self::dialogs::{render_confirm_close_overlay, render_rename_overlay};
+use self::dialogs::{
+    render_action_editor_overlay, render_confirm_close_overlay, render_rename_overlay,
+};
 pub(crate) use self::files::{
     compute_files_rows, files_panel_scroll_metrics, files_panel_scrollbar_rect,
 };
@@ -56,9 +58,10 @@ pub(crate) use self::{
     sidebar::{
         agent_panel_body_rect, agent_panel_entries, agent_panel_scroll_metrics,
         agent_panel_scrollbar_rect, agent_panel_toggle_rect, collapsed_sidebar_sections,
-        collapsed_sidebar_toggle_rect, compute_workspace_card_areas, expanded_sidebar_sections,
-        files_section_divider_rect, sidebar_section_divider_rect, workspace_drop_indicator_row,
-        workspace_list_rect, workspace_list_scroll_metrics, workspace_list_scrollbar_rect,
+        collapsed_sidebar_toggle_rect, compute_action_rows, compute_workspace_card_areas,
+        expanded_sidebar_sections, files_section_divider_rect, sidebar_section_divider_rect,
+        workspace_drop_indicator_row, workspace_list_rect, workspace_list_scroll_metrics,
+        workspace_list_scrollbar_rect,
     },
 };
 pub(crate) use self::{
@@ -174,6 +177,7 @@ fn compute_view_internal(
             sidebar_area,
             app.sidebar_section_split,
             app.files_section_split,
+            app.actions.len(),
         );
         let max_agent_scroll = agent_panel_scroll_metrics(app, detail_area).max_offset_from_bottom;
         app.agent_panel_scroll = app.agent_panel_scroll.min(max_agent_scroll);
@@ -193,6 +197,12 @@ fn compute_view_internal(
         Vec::new()
     } else {
         compute_files_rows(app, sidebar_area)
+    };
+
+    let (action_rows, actions_new_button_rect) = if app.sidebar_collapsed {
+        (Vec::new(), Rect::default())
+    } else {
+        compute_action_rows(app, sidebar_area)
     };
 
     let tab_bar_view = app
@@ -232,6 +242,8 @@ fn compute_view_internal(
         sidebar_rect: sidebar_area,
         workspace_card_areas,
         files_rows,
+        action_rows,
+        actions_new_button_rect,
         tab_bar_rect,
         tab_hit_areas: tab_bar_view.tab_hit_areas,
         tab_scroll_left_hit_area: tab_bar_view.scroll_left_hit_area,
@@ -290,6 +302,8 @@ fn compute_mobile_view(
         sidebar_rect: Rect::default(),
         workspace_card_areas: Vec::new(),
         files_rows: Vec::new(),
+        action_rows: Vec::new(),
+        actions_new_button_rect: Rect::default(),
         tab_bar_rect: Rect::default(),
         tab_hit_areas: Vec::new(),
         tab_scroll_left_hit_area: Rect::default(),
@@ -340,6 +354,7 @@ pub fn render(app: &AppState, frame: &mut Frame) {
         }
         Mode::GlobalMenu => render_global_launcher_menu(app, frame),
         Mode::KeybindHelp => render_keybind_help_overlay(app, frame),
+        Mode::ActionEditor => render_action_editor_overlay(app, frame, frame.area()),
         Mode::Terminal => {}
     }
 

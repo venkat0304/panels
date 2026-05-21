@@ -1,6 +1,6 @@
 [package]
 name = "panels"
-version = "0.5.9"
+version = "0.5.10"
 edition = "2021"
 build = "build.rs"
 description = "terminal workspace manager for AI coding agents"
@@ -17,6 +17,15 @@ bincode = { version = "2", features = ["serde"] }
 bytes = "1"
 crossterm = "0.29"
 ctrlc = "3"
+image = { version = "0.25", default-features = false, features = [
+    "jpeg",
+    "png",
+    "gif",
+    "webp",
+    "bmp",
+    "tiff",
+    "ico",
+] }
 libc = "0.2"
 portable-pty = "0.9"
 png = "0.17"

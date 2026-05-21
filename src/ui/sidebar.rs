@@ -62,12 +62,38 @@ fn lower_section_split(lower_h: u16, files_split: f32) -> (u16, u16) {
     (lower_h - files_h, files_h)
 }
 
+/// The ACTIONS panel is a compact strip carved from the bottom of the agents
+/// region (so the files panel and its persisted split stay unchanged). It is
+/// only shown when the agents region stays tall enough to remain usable.
+pub(crate) const ACTIONS_HEADER_ROWS: u16 = 1;
+const ACTIONS_VISIBLE_CAP: usize = 5;
+const AGENTS_MIN_KEEP: u16 = 6;
+
+/// Height of the ACTIONS strip given the full agents region height and the
+/// number of defined actions. Returns 0 when there isn't room for it.
+fn actions_strip_height(agent_full_h: u16, action_count: usize) -> u16 {
+    let rows = action_count.min(ACTIONS_VISIBLE_CAP) as u16;
+    let desired = ACTIONS_HEADER_ROWS + rows;
+    if agent_full_h >= AGENTS_MIN_KEEP + desired {
+        return desired;
+    }
+    // Tight: shrink the strip but never starve the agents list, and never
+    // show less than the header.
+    let spare = agent_full_h.saturating_sub(AGENTS_MIN_KEEP);
+    if spare < ACTIONS_HEADER_ROWS {
+        return 0;
+    }
+    spare.min(desired)
+}
+
 /// Returns `(spaces_area, agents_area, files_area)`. `files_area` may have
-/// zero height when the sidebar is too short.
+/// zero height when the sidebar is too short. The agents area already
+/// excludes the ACTIONS strip (see [`actions_panel_rect`]).
 pub(crate) fn expanded_sidebar_sections(
     area: Rect,
     split_ratio: f32,
     files_split: f32,
+    action_count: usize,
 ) -> (Rect, Rect, Rect) {
     let content = Rect::new(area.x, area.y, area.width.saturating_sub(1), area.height);
     if content.width == 0 || content.height == 0 {
@@ -75,16 +101,45 @@ pub(crate) fn expanded_sidebar_sections(
     }
 
     let (ws_h, lower_h) = sidebar_section_heights(content.height, split_ratio);
-    let (agent_h, files_h) = lower_section_split(lower_h, files_split);
+    let (agent_full_h, files_h) = lower_section_split(lower_h, files_split);
+    let actions_h = actions_strip_height(agent_full_h, action_count);
+    let agent_h = agent_full_h.saturating_sub(actions_h);
     let ws_area = Rect::new(content.x, content.y, content.width, ws_h);
     let agent_area = Rect::new(content.x, content.y + ws_h, content.width, agent_h);
     let files_area = Rect::new(
         content.x,
-        content.y + ws_h + agent_h,
+        content.y + ws_h + agent_full_h,
         content.width,
         files_h,
     );
     (ws_area, agent_area, files_area)
+}
+
+/// The ACTIONS strip rect (between agents and files), or an empty rect when
+/// hidden because the sidebar is too short.
+pub(crate) fn actions_panel_rect(
+    area: Rect,
+    split_ratio: f32,
+    files_split: f32,
+    action_count: usize,
+) -> Rect {
+    let content = Rect::new(area.x, area.y, area.width.saturating_sub(1), area.height);
+    if content.width == 0 || content.height == 0 {
+        return Rect::default();
+    }
+    let (ws_h, lower_h) = sidebar_section_heights(content.height, split_ratio);
+    let (agent_full_h, _files_h) = lower_section_split(lower_h, files_split);
+    let actions_h = actions_strip_height(agent_full_h, action_count);
+    if actions_h == 0 {
+        return Rect::default();
+    }
+    let agent_h = agent_full_h.saturating_sub(actions_h);
+    Rect::new(
+        content.x,
+        content.y + ws_h + agent_h,
+        content.width,
+        actions_h,
+    )
 }
 
 pub(crate) fn sidebar_section_divider_rect(area: Rect, split_ratio: f32) -> Rect {
@@ -100,7 +155,8 @@ pub(crate) fn sidebar_section_divider_rect(area: Rect, split_ratio: f32) -> Rect
 /// The draggable divider row between the agents and files panels. Empty when
 /// the files panel is hidden (sidebar too short).
 pub(crate) fn files_section_divider_rect(area: Rect, split_ratio: f32, files_split: f32) -> Rect {
-    let (_, _, files_area) = expanded_sidebar_sections(area, split_ratio, files_split);
+    // files_area is independent of the actions count, so 0 is safe here.
+    let (_, _, files_area) = expanded_sidebar_sections(area, split_ratio, files_split, 0);
     if files_area.height == 0 || files_area.width == 0 {
         return Rect::default();
     }
@@ -294,7 +350,7 @@ fn workspace_row_height(ws: &crate::workspace::Workspace) -> u16 {
 
 pub(crate) fn workspace_list_rect(area: Rect, split_ratio: f32) -> Rect {
     // The spaces area is independent of the agents/files split ratio.
-    let (ws_area, _, _) = expanded_sidebar_sections(area, split_ratio, 0.5);
+    let (ws_area, _, _) = expanded_sidebar_sections(area, split_ratio, 0.5, 0);
     ws_area
 }
 
@@ -626,11 +682,23 @@ pub(super) fn render_sidebar(app: &AppState, frame: &mut Frame, area: Rect) {
         buf[(sep_x, y)].set_style(sep_style);
     }
 
-    let (ws_area, detail_area, files_area) =
-        expanded_sidebar_sections(area, app.sidebar_section_split, app.files_section_split);
+    let (ws_area, detail_area, files_area) = expanded_sidebar_sections(
+        area,
+        app.sidebar_section_split,
+        app.files_section_split,
+        app.actions.len(),
+    );
+
+    let actions_area = actions_panel_rect(
+        area,
+        app.sidebar_section_split,
+        app.files_section_split,
+        app.actions.len(),
+    );
 
     render_workspace_list(app, frame, ws_area, is_navigating);
     render_agent_detail(app, frame, detail_area);
+    render_actions_panel(app, frame, actions_area);
     super::files::render_files_panel(app, frame, files_area);
     render_sidebar_toggle(app, frame, area, false, p);
 }
@@ -934,6 +1002,135 @@ fn render_agent_detail(app: &AppState, frame: &mut Frame, area: Rect) {
     }
 }
 
+/// Width of the "new" affordance in the ACTIONS header.
+const ACTIONS_NEW_LABEL: &str = "new";
+
+/// Compute the clickable geometry of the ACTIONS panel: one row per visible
+/// action (capped) plus the header "new" button. Returns
+/// `(rows, new_button_rect)`; both empty/default when the panel is hidden.
+pub(crate) fn compute_action_rows(
+    app: &AppState,
+    sidebar_area: Rect,
+) -> (Vec<crate::app::state::ActionRowArea>, Rect) {
+    if app.sidebar_collapsed {
+        return (Vec::new(), Rect::default());
+    }
+    let area = actions_panel_rect(
+        sidebar_area,
+        app.sidebar_section_split,
+        app.files_section_split,
+        app.actions.len(),
+    );
+    if area.width == 0 || area.height == 0 {
+        return (Vec::new(), Rect::default());
+    }
+
+    let new_button_rect = if app.mouse_capture {
+        let w = ACTIONS_NEW_LABEL.chars().count() as u16;
+        Rect::new(
+            area.x + area.width.saturating_sub(w),
+            area.y,
+            w.min(area.width),
+            1,
+        )
+    } else {
+        Rect::default()
+    };
+
+    let mut rows = Vec::new();
+    let body_y = area.y + ACTIONS_HEADER_ROWS;
+    let body_bottom = area.y + area.height;
+    for (i, action) in app.actions.iter().take(ACTIONS_VISIBLE_CAP).enumerate() {
+        let y = body_y + i as u16;
+        if y >= body_bottom {
+            break;
+        }
+        let play_w = 2u16.min(area.width);
+        rows.push(crate::app::state::ActionRowArea {
+            id: action.id,
+            play_rect: Rect::new(area.x, y, play_w, 1),
+            row_rect: Rect::new(area.x + play_w, y, area.width.saturating_sub(play_w), 1),
+        });
+    }
+    (rows, new_button_rect)
+}
+
+fn action_status_span<'a>(status: &'a crate::app::state::ActionStatus, p: &Palette) -> Span<'a> {
+    use crate::app::state::ActionStatus;
+    let (text, color) = match status {
+        ActionStatus::Idle => ("ready".to_string(), p.overlay0),
+        ActionStatus::NeedsTarget => ("select active panel".to_string(), p.yellow),
+        ActionStatus::Running { .. } => ("running…".to_string(), p.blue),
+        ActionStatus::Done { ok: true, at } => (format!("done {at}"), p.green),
+        ActionStatus::Done { ok: false, at } => (format!("failed {at}"), p.red),
+    };
+    Span::styled(text, Style::default().fg(color).add_modifier(Modifier::DIM))
+}
+
+pub(super) fn render_actions_panel(app: &AppState, frame: &mut Frame, area: Rect) {
+    if area.width == 0 || area.height == 0 {
+        return;
+    }
+    let p = &app.palette;
+
+    let mut header = vec![Span::styled(
+        " actions",
+        Style::default().fg(p.overlay0).add_modifier(Modifier::BOLD),
+    )];
+    frame.render_widget(
+        Paragraph::new(Line::from(std::mem::take(&mut header))),
+        Rect::new(area.x, area.y, area.width, 1),
+    );
+    let new_rect = app.view.actions_new_button_rect;
+    if new_rect != Rect::default() {
+        frame.render_widget(
+            Paragraph::new(Span::styled(
+                ACTIONS_NEW_LABEL,
+                Style::default().fg(p.overlay0).add_modifier(Modifier::BOLD),
+            ))
+            .alignment(Alignment::Right),
+            new_rect,
+        );
+    }
+
+    for row in &app.view.action_rows {
+        let Some(action) = app.actions.iter().find(|a| a.id == row.id) else {
+            continue;
+        };
+        let play_color = match action.status {
+            crate::app::state::ActionStatus::Running { .. } => p.overlay0,
+            _ => p.green,
+        };
+        frame.render_widget(
+            Paragraph::new(Span::styled("▶ ", Style::default().fg(play_color))),
+            row.play_rect,
+        );
+
+        let status = action_status_span(&action.status, p);
+        let status_w = status.content.chars().count();
+        let avail = (row.row_rect.width as usize).saturating_sub(status_w + 2);
+        let name = if action.name.chars().count() > avail && avail > 1 {
+            format!(
+                "{}…",
+                action.name.chars().take(avail - 1).collect::<String>()
+            )
+        } else {
+            action.name.clone()
+        };
+        frame.render_widget(
+            Paragraph::new(Line::from(vec![
+                Span::styled(
+                    name,
+                    Style::default().fg(p.subtext0).add_modifier(Modifier::BOLD),
+                ),
+                Span::styled("  ", Style::default()),
+                status,
+            ])),
+            row.row_rect,
+        );
+    }
+}
+
 pub(crate) fn collapsed_sidebar_toggle_rect(area: Rect) -> Rect {
     let bottom_y = area.y + area.height.saturating_sub(1);
     let content_w = area.width.saturating_sub(1);
@@ -1031,7 +1228,7 @@ mod tests {
     #[test]
     fn expanded_sidebar_sections_handle_tiny_heights() {
         let (ws_area, detail_area, files_area) =
-            expanded_sidebar_sections(Rect::new(0, 0, 20, 5), 0.9, 0.35);
+            expanded_sidebar_sections(Rect::new(0, 0, 20, 5), 0.9, 0.35, 0);
 
         assert_eq!(ws_area, Rect::new(0, 0, 19, 3));
         assert_eq!(detail_area, Rect::new(0, 3, 19, 2));
@@ -1043,5 +1240,33 @@ mod tests {
         let divider = sidebar_section_divider_rect(Rect::new(0, 0, 20, 5), 0.5);
 
         assert_eq!(divider, Rect::default());
+    }
+
+    #[test]
+    fn actions_strip_is_carved_from_the_bottom_of_agents() {
+        let area = Rect::new(0, 0, 26, 40);
+        let (_, agents_none, files_none) = expanded_sidebar_sections(area, 0.5, 0.35, 0);
+        let (_, agents_two, files_two) = expanded_sidebar_sections(area, 0.5, 0.35, 2);
+
+        // Files position/size is unaffected by the actions count.
+        assert_eq!(files_none, files_two);
+        // The header strip is always reserved (so the "new" button is
+        // reachable), so adding 2 actions only costs 2 extra agent rows.
+        assert_eq!(agents_none.height - agents_two.height, 2);
+
+        let strip = actions_panel_rect(area, 0.5, 0.35, 2);
+        assert_eq!(strip.height, ACTIONS_HEADER_ROWS + 2);
+        // The strip sits directly between the agents area and files.
+        assert_eq!(strip.y, agents_two.y + agents_two.height);
+        assert_eq!(strip.y + strip.height, files_two.y);
+    }
+
+    #[test]
+    fn actions_panel_hidden_when_sidebar_is_short() {
+        // Tiny sidebar: agents must keep priority, so no actions strip.
+        assert_eq!(
+            actions_panel_rect(Rect::new(0, 0, 20, 12), 0.5, 0.35, 3),
+            Rect::default()
+        );
     }
 }

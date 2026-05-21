@@ -390,6 +390,7 @@ impl AppState {
             self.view.sidebar_rect,
             self.sidebar_section_split,
             self.files_section_split,
+            self.actions.len(),
         );
         let metrics = crate::ui::agent_panel_scroll_metrics(self, detail_area);
         let visible = metrics.viewport_rows;
@@ -909,6 +910,19 @@ impl AppState {
     }
 
     fn handle_pane_died(&mut self, pane_id: PaneId) {
+        // If this pane was launched by an ACTION, the command has now
+        // finished — record completion with a wall-clock stamp.
+        for action in &mut self.actions {
+            if let crate::app::state::ActionStatus::Running { pane_id: pid, .. } = action.status {
+                if pid == pane_id {
+                    action.status = crate::app::state::ActionStatus::Done {
+                        ok: true,
+                        at: crate::app::input::local_hh_mm(),
+                    };
+                }
+            }
+        }
+
         let ws_idx = self
             .workspaces
             .iter()

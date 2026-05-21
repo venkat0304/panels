@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+## [0.5.10] - 2026-05-20
+
+### Added
+- One-line installer script (`install.sh`) and `curl | sh` install command in the README — fetches the prebuilt binary for the host OS/arch from the latest GitHub release instead of requiring a source build.
+- Image preview now opens any format. The filesystem panel's `render-image` subcommand tries an external terminal viewer first, then in-pane Kitty graphics (PNG fast path + RGBA decode for jpeg/gif/webp/bmp/tiff/ico via the `image` crate), and finally falls back to the OS default viewer so images always display.
+- Filesystem panel improvements (in-progress branch work): new actions, modal/mouse/sidebar handling, persistence and UI dialogs.
+
+### Fixed
+- Opening an image in the filesystem panel no longer leaves a blank pane when the Kitty graphics relay is disabled or the format isn't PNG.
+
 ## [0.5.9] - 2026-05-15
 
 ### Added
