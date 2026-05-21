@@ -862,10 +862,12 @@ fn render_workspace_list(app: &AppState, frame: &mut Frame, area: Rect, is_navig
         render_scrollbar(frame, metrics, track, p.surface_dim, p.overlay0, "▕");
     }
 
-    if app.mouse_capture && list_bottom > area.y {
+    if app.mouse_capture && area.height > 0 {
+        // `+` and `menu` sit on the same row as the " spaces" label,
+        // right-aligned. See `sidebar_header_rect` for placement.
         let new_rect = app.sidebar_new_button_rect();
         frame.render_widget(
-            Paragraph::new(Span::styled("new", Style::default().fg(p.overlay0))),
+            Paragraph::new(Span::styled("+", Style::default().fg(p.overlay0))),
             new_rect,
         );
 
@@ -1002,8 +1004,9 @@ fn render_agent_detail(app: &AppState, frame: &mut Frame, area: Rect) {
     }
 }
 
-/// Width of the "new" affordance in the ACTIONS header.
-const ACTIONS_NEW_LABEL: &str = "new";
+/// `+` affordance in the ACTIONS header (was "new"; unified with the
+/// spaces section so both panels use the same iconography).
+const ACTIONS_NEW_LABEL: &str = "+";
 
 /// Compute the clickable geometry of the ACTIONS panel: one row per visible
 /// action (capped) plus the header "new" button. Returns
