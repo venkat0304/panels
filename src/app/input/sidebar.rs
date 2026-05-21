@@ -29,14 +29,23 @@ impl AppState {
 
     pub(super) fn files_panel_rect(&self) -> Rect {
         let sidebar = self.view.sidebar_rect;
-        if self.sidebar_collapsed || sidebar.width <= 1 || sidebar.height == 0 {
+        if self.sidebar_collapsed
+            || self.sidebar_hide_files
+            || sidebar.width <= 1
+            || sidebar.height == 0
+        {
             return Rect::default();
         }
+        let action_count = if self.sidebar_hide_actions {
+            0
+        } else {
+            self.actions.len()
+        };
         let (_, _, files_area) = crate::ui::expanded_sidebar_sections(
             sidebar,
             self.sidebar_section_split,
             self.files_section_split,
-            self.actions.len(),
+            action_count,
         );
         files_area
     }
@@ -404,7 +413,7 @@ impl AppState {
     }
 
     pub(super) fn on_files_section_divider(&self, col: u16, row: u16) -> bool {
-        if self.sidebar_collapsed {
+        if self.sidebar_collapsed || self.sidebar_hide_files {
             return false;
         }
         let rect = crate::ui::files_section_divider_rect(

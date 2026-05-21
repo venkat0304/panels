@@ -55,8 +55,23 @@ pub struct Config {
     pub theme: ThemeConfig,
     pub keys: KeysConfig,
     pub ui: UiConfig,
+    pub sidebar: SidebarConfig,
     pub advanced: AdvancedConfig,
     pub experimental: ExperimentalConfig,
+}
+
+/// Visibility toggles for the sidebar's three sections. Defaults keep
+/// everything visible so this is a strict opt-out — turning a toggle on
+/// hides that piece of UI.
+#[derive(Debug, Default, Deserialize)]
+#[serde(default)]
+pub struct SidebarConfig {
+    /// Hide the entire ACTIONS panel. Default: false.
+    pub hide_actions: bool,
+    /// Hide the entire FILES panel. Default: false.
+    pub hide_files: bool,
+    /// Hide the branch row under each workspace card. Default: false.
+    pub hide_branch: bool,
 }
 
 #[derive(Debug)]

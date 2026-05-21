@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+## [0.5.12] - 2026-05-20
+
+### Added
+- New **sidebar** tab in Settings with three toggles: hide the entire actions panel, hide the entire files panel, and hide the per-workspace branch row. Stored under `[sidebar]` in `config.toml` (`hide_actions`, `hide_files`, `hide_branch`). When a panel is hidden the agent detail area expands to fill the reclaimed space.
+
 ## [0.5.11] - 2026-05-20
 
 ### Changed

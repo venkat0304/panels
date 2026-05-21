@@ -3,7 +3,7 @@ use ratatui::layout::Rect;
 
 use crate::{
     app::{
-        state::{AppState, SettingsSection, THEME_NAMES},
+        state::{AppState, SettingsSection, SidebarToggle, THEME_NAMES},
         App, Mode,
     },
     config::ToastDelivery,
@@ -17,6 +17,9 @@ pub(super) enum SettingsAction {
     SaveSound(bool),
     SaveToastDelivery(ToastDelivery),
     SaveAgentBorderLabels(bool),
+    SaveSidebarHideActions(bool),
+    SaveSidebarHideFiles(bool),
+    SaveSidebarHideBranch(bool),
 }
 
 impl App {
@@ -29,8 +32,33 @@ impl App {
                 SettingsAction::SaveAgentBorderLabels(enabled) => {
                     self.save_agent_border_labels(enabled)
                 }
+                SettingsAction::SaveSidebarHideActions(hidden) => {
+                    self.save_sidebar_hide_actions(hidden)
+                }
+                SettingsAction::SaveSidebarHideFiles(hidden) => {
+                    self.save_sidebar_hide_files(hidden)
+                }
+                SettingsAction::SaveSidebarHideBranch(hidden) => {
+                    self.save_sidebar_hide_branch(hidden)
+                }
             }
         }
+    }
+}
+
+fn sidebar_toggle_current(state: &AppState, toggle: SidebarToggle) -> bool {
+    match toggle {
+        SidebarToggle::HideActions => state.sidebar_hide_actions(),
+        SidebarToggle::HideFiles => state.sidebar_hide_files(),
+        SidebarToggle::HideBranch => state.sidebar_hide_branch(),
+    }
+}
+
+fn sidebar_toggle_action(toggle: SidebarToggle, hidden: bool) -> SettingsAction {
+    match toggle {
+        SidebarToggle::HideActions => SettingsAction::SaveSidebarHideActions(hidden),
+        SidebarToggle::HideFiles => SettingsAction::SaveSidebarHideFiles(hidden),
+        SidebarToggle::HideBranch => SettingsAction::SaveSidebarHideBranch(hidden),
     }
 }
 
@@ -187,6 +215,33 @@ pub(super) fn update_settings_state(state: &mut AppState, key: KeyEvent) -> Opti
                 state.settings.list.selected = toast_delivery_index(state.toast_delivery());
             }
             KeyCode::Tab | KeyCode::Right | KeyCode::Char('l') => {
+                state.settings.section = SettingsSection::Sidebar;
+                state.settings.list.selected = 0;
+            }
+            _ => {
+                if let Some(super::modal::ModalAction::Close) =
+                    super::modal::modal_action_from_key(&key, super::modal::SETTINGS_ACTIONS)
+                {
+                    cancel_settings(state);
+                }
+            }
+        },
+        SettingsSection::Sidebar => match key.code {
+            KeyCode::Up | KeyCode::Char('k') => state.settings.list.move_prev(),
+            KeyCode::Down | KeyCode::Char('j') => {
+                state.settings.list.move_next(SidebarToggle::ALL.len())
+            }
+            KeyCode::Enter | KeyCode::Char(' ') => {
+                if let Some(toggle) = SidebarToggle::from_index(state.settings.list.selected) {
+                    let next = !sidebar_toggle_current(state, toggle);
+                    return Some(sidebar_toggle_action(toggle, next));
+                }
+            }
+            KeyCode::BackTab | KeyCode::Left | KeyCode::Char('h') => {
+                state.settings.section = SettingsSection::PaneLabels;
+                state.settings.list.selected = usize::from(!state.agent_border_labels_enabled());
+            }
+            KeyCode::Tab | KeyCode::Right | KeyCode::Char('l') => {
                 state.settings.section = SettingsSection::Theme;
                 state.settings.list.selected = current_theme_index(&state.theme_name);
             }
@@ -290,6 +345,15 @@ impl AppState {
                     None
                 }
             }
+            SettingsSection::Sidebar => {
+                let list_y = area.y + 3;
+                let count = SidebarToggle::ALL.len() as u16;
+                if row >= list_y && row < list_y + count {
+                    Some((row - list_y) as usize)
+                } else {
+                    None
+                }
+            }
         }
     }
 
@@ -305,6 +369,7 @@ impl AppState {
                         SettingsSection::PaneLabels => {
                             usize::from(!self.agent_border_labels_enabled())
                         }
+                        SettingsSection::Sidebar => 0,
                     });
                     return None;
                 }
@@ -326,6 +391,11 @@ impl AppState {
                         SettingsSection::PaneLabels => {
                             let enabled = idx == 0;
                             Some(SettingsAction::SaveAgentBorderLabels(enabled))
+                        }
+                        SettingsSection::Sidebar => {
+                            let toggle = SidebarToggle::from_index(idx)?;
+                            let next = !sidebar_toggle_current(self, toggle);
+                            Some(sidebar_toggle_action(toggle, next))
                         }
                     };
                 }

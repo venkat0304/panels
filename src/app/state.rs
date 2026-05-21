@@ -638,10 +638,17 @@ pub enum SettingsSection {
     Sound,
     Toast,
     PaneLabels,
+    Sidebar,
 }
 
 impl SettingsSection {
-    pub const ALL: &[Self] = &[Self::Theme, Self::Sound, Self::Toast, Self::PaneLabels];
+    pub const ALL: &[Self] = &[
+        Self::Theme,
+        Self::Sound,
+        Self::Toast,
+        Self::PaneLabels,
+        Self::Sidebar,
+    ];
 
     pub fn label(self) -> &'static str {
         match self {
@@ -649,7 +656,35 @@ impl SettingsSection {
             Self::Sound => "sound",
             Self::Toast => "toasts",
             Self::PaneLabels => "pane labels",
+            Self::Sidebar => "sidebar",
         }
+    }
+}
+
+/// Identifies one of the three toggle rows in the Sidebar settings tab.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+// All three variants share a `Hide` prefix on purpose — that's the
+// semantic for the entire enum.
+#[allow(clippy::enum_variant_names)]
+pub enum SidebarToggle {
+    HideActions,
+    HideFiles,
+    HideBranch,
+}
+
+impl SidebarToggle {
+    pub const ALL: &[Self] = &[Self::HideActions, Self::HideFiles, Self::HideBranch];
+
+    pub fn label(self) -> &'static str {
+        match self {
+            Self::HideActions => "hide actions panel",
+            Self::HideFiles => "hide files panel",
+            Self::HideBranch => "hide branch in spaces",
+        }
+    }
+
+    pub fn from_index(idx: usize) -> Option<Self> {
+        Self::ALL.get(idx).copied()
     }
 }
 
@@ -969,6 +1004,12 @@ pub struct AppState {
     pub confirm_close: bool,
     pub prompt_new_tab_name: bool,
     pub show_agent_labels_on_pane_borders: bool,
+    /// Hide the ACTIONS panel (set via Settings > sidebar). Default: false.
+    pub sidebar_hide_actions: bool,
+    /// Hide the FILES panel (set via Settings > sidebar). Default: false.
+    pub sidebar_hide_files: bool,
+    /// Hide the branch row under each workspace card. Default: false.
+    pub sidebar_hide_branch: bool,
     pub kitty_graphics_enabled: bool,
     pub pane_scrollback_limit_bytes: usize,
     #[allow(dead_code)] // kept for backward compat; palette.accent is the source of truth
@@ -1008,6 +1049,18 @@ impl AppState {
 
     pub fn agent_border_labels_enabled(&self) -> bool {
         self.show_agent_labels_on_pane_borders
+    }
+
+    pub fn sidebar_hide_actions(&self) -> bool {
+        self.sidebar_hide_actions
+    }
+
+    pub fn sidebar_hide_files(&self) -> bool {
+        self.sidebar_hide_files
+    }
+
+    pub fn sidebar_hide_branch(&self) -> bool {
+        self.sidebar_hide_branch
     }
 
     pub fn focused_pane_requests_mouse_capture(&self) -> bool {
@@ -1216,6 +1269,9 @@ impl AppState {
             confirm_close: true,
             prompt_new_tab_name: true,
             show_agent_labels_on_pane_borders: false,
+            sidebar_hide_actions: false,
+            sidebar_hide_files: false,
+            sidebar_hide_branch: false,
             kitty_graphics_enabled: false,
             pane_scrollback_limit_bytes: crate::config::DEFAULT_SCROLLBACK_LIMIT_BYTES,
             accent: Color::Cyan,

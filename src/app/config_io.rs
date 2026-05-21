@@ -86,6 +86,30 @@ impl App {
         }
     }
 
+    pub(super) fn save_sidebar_hide_actions(&mut self, hidden: bool) {
+        if self.update_config_file("sidebar hide_actions", |content| {
+            crate::config::upsert_section_bool(content, "sidebar", "hide_actions", hidden)
+        }) {
+            self.apply_config_from_disk(false);
+        }
+    }
+
+    pub(super) fn save_sidebar_hide_files(&mut self, hidden: bool) {
+        if self.update_config_file("sidebar hide_files", |content| {
+            crate::config::upsert_section_bool(content, "sidebar", "hide_files", hidden)
+        }) {
+            self.apply_config_from_disk(false);
+        }
+    }
+
+    pub(super) fn save_sidebar_hide_branch(&mut self, hidden: bool) {
+        if self.update_config_file("sidebar hide_branch", |content| {
+            crate::config::upsert_section_bool(content, "sidebar", "hide_branch", hidden)
+        }) {
+            self.apply_config_from_disk(false);
+        }
+    }
+
     pub(super) fn save_agent_panel_scope(&mut self, scope: crate::app::state::AgentPanelScope) {
         let value = match scope {
             crate::app::state::AgentPanelScope::CurrentWorkspace => {
