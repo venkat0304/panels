@@ -340,8 +340,8 @@ fn format_agent_panel_primary_label(entry: &AgentPanelEntry, max_width: usize) -
     )
 }
 
-fn workspace_row_height(ws: &crate::workspace::Workspace) -> u16 {
-    if ws.branch().is_some() {
+fn workspace_row_height(ws: &crate::workspace::Workspace, hide_branch: bool) -> u16 {
+    if !hide_branch && ws.branch().is_some() {
         2
     } else {
         1
@@ -375,7 +375,7 @@ fn workspace_list_visible_count(app: &AppState, area: Rect, scroll: usize) -> us
     let mut used_rows = 0u16;
     let mut visible = 0usize;
     for ws in app.workspaces.iter().skip(scroll) {
-        let needed = workspace_row_height(ws).saturating_add(1);
+        let needed = workspace_row_height(ws, app.sidebar_hide_branch).saturating_add(1);
         if used_rows.saturating_add(needed) > body.height {
             break;
         }
@@ -489,7 +489,7 @@ pub(crate) fn compute_workspace_card_areas(
     let mut cards = Vec::new();
 
     for (ws_idx, ws) in app.workspaces.iter().enumerate().skip(app.workspace_scroll) {
-        let row_height = workspace_row_height(ws);
+        let row_height = workspace_row_height(ws, app.sidebar_hide_branch);
         if row_y.saturating_add(row_height).saturating_add(1) > body_bottom {
             break;
         }
@@ -682,24 +682,49 @@ pub(super) fn render_sidebar(app: &AppState, frame: &mut Frame, area: Rect) {
         buf[(sep_x, y)].set_style(sep_style);
     }
 
-    let (ws_area, detail_area, files_area) = expanded_sidebar_sections(
+    let effective_actions = if app.sidebar_hide_actions {
+        0
+    } else {
+        app.actions.len()
+    };
+    let (ws_area, mut detail_area, mut files_area) = expanded_sidebar_sections(
         area,
         app.sidebar_section_split,
         app.files_section_split,
-        app.actions.len(),
+        effective_actions,
     );
 
-    let actions_area = actions_panel_rect(
-        area,
-        app.sidebar_section_split,
-        app.files_section_split,
-        app.actions.len(),
-    );
+    let actions_area = if app.sidebar_hide_actions {
+        Rect::default()
+    } else {
+        actions_panel_rect(
+            area,
+            app.sidebar_section_split,
+            app.files_section_split,
+            app.actions.len(),
+        )
+    };
+
+    // Hiding the files panel reclaims its rows for the agent detail area
+    // so the detail list grows instead of leaving an empty gap.
+    if app.sidebar_hide_files && files_area.height > 0 {
+        detail_area = Rect::new(
+            detail_area.x,
+            detail_area.y,
+            detail_area.width,
+            detail_area.height.saturating_add(files_area.height),
+        );
+        files_area = Rect::default();
+    }
 
     render_workspace_list(app, frame, ws_area, is_navigating);
     render_agent_detail(app, frame, detail_area);
-    render_actions_panel(app, frame, actions_area);
-    super::files::render_files_panel(app, frame, files_area);
+    if !app.sidebar_hide_actions {
+        render_actions_panel(app, frame, actions_area);
+    }
+    if !app.sidebar_hide_files {
+        super::files::render_files_panel(app, frame, files_area);
+    }
     render_sidebar_toggle(app, frame, area, false, p);
 }
 
@@ -1015,7 +1040,7 @@ pub(crate) fn compute_action_rows(
     app: &AppState,
     sidebar_area: Rect,
 ) -> (Vec<crate::app::state::ActionRowArea>, Rect) {
-    if app.sidebar_collapsed {
+    if app.sidebar_collapsed || app.sidebar_hide_actions {
         return (Vec::new(), Rect::default());
     }
     let area = actions_panel_rect(

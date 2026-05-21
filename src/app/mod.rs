@@ -413,6 +413,9 @@ impl App {
             confirm_close: config.ui.confirm_close,
             prompt_new_tab_name: config.ui.prompt_new_tab_name,
             show_agent_labels_on_pane_borders: config.ui.show_agent_labels_on_pane_borders,
+            sidebar_hide_actions: config.sidebar.hide_actions,
+            sidebar_hide_files: config.sidebar.hide_files,
+            sidebar_hide_branch: config.sidebar.hide_branch,
             kitty_graphics_enabled: config.experimental.kitty_graphics,
             pane_scrollback_limit_bytes: config.advanced.scrollback_limit_bytes,
             accent: crate::config::parse_color(&config.ui.accent),
@@ -775,6 +778,12 @@ impl App {
             }
             self.state.sound = config.ui.sound.clone();
             self.state.toast_config = config.ui.toast.clone();
+        }
+
+        if !invalid_section("sidebar") {
+            self.state.sidebar_hide_actions = config.sidebar.hide_actions;
+            self.state.sidebar_hide_files = config.sidebar.hide_files;
+            self.state.sidebar_hide_branch = config.sidebar.hide_branch;
         }
 
         if !invalid_section("experimental") {

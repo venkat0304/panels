@@ -11,7 +11,10 @@ use super::widgets::{
     render_action_button, render_modal_choice_list, render_panel_shell, ActionButtonSpec,
 };
 use crate::{
-    app::{state::Palette, AppState},
+    app::{
+        state::{Palette, SidebarToggle},
+        AppState,
+    },
     config::ToastDelivery,
 };
 
@@ -118,6 +121,9 @@ pub(super) fn render_settings_overlay(app: &AppState, frame: &mut Frame, area: R
                 app.settings.list.selected,
             );
         }
+        SettingsSection::Sidebar => {
+            render_settings_sidebar(app, frame, content_area);
+        }
     }
 
     if let Some(footer_area) = stack.footer {
@@ -205,6 +211,70 @@ fn render_settings_theme(app: &AppState, frame: &mut Frame, area: Rect) {
 
     let mut state = ListState::default().with_selected(Some(app.settings.list.selected));
     frame.render_stateful_widget(list, area, &mut state);
+}
+
+fn render_settings_sidebar(app: &AppState, frame: &mut Frame, area: Rect) {
+    let p = &app.palette;
+    if area.height == 0 {
+        return;
+    }
+
+    let title = Paragraph::new(Line::from(vec![Span::styled(
+        " sidebar visibility",
+        Style::default().fg(p.text).add_modifier(Modifier::BOLD),
+    )]));
+    frame.render_widget(title, Rect::new(area.x, area.y, area.width, 1));
+
+    if area.height >= 2 {
+        frame.render_widget(
+            Paragraph::new(Line::from(vec![Span::styled(
+                " hide sections of the sidebar; selections persist to config",
+                Style::default().fg(p.overlay1),
+            )])),
+            Rect::new(area.x, area.y + 1, area.width, 1),
+        );
+    }
+
+    let list_y = area.y.saturating_add(3);
+    let selected = app.settings.list.selected;
+    for (idx, toggle) in SidebarToggle::ALL.iter().enumerate() {
+        let row_y = list_y + idx as u16;
+        if row_y >= area.y + area.height {
+            break;
+        }
+        let value = match toggle {
+            SidebarToggle::HideActions => app.sidebar_hide_actions(),
+            SidebarToggle::HideFiles => app.sidebar_hide_files(),
+            SidebarToggle::HideBranch => app.sidebar_hide_branch(),
+        };
+        let highlighted = idx == selected;
+        let marker_style = if highlighted {
+            Style::default().fg(p.accent).add_modifier(Modifier::BOLD)
+        } else {
+            Style::default().fg(p.overlay0)
+        };
+        let label_style = if highlighted {
+            Style::default().fg(p.text).add_modifier(Modifier::BOLD)
+        } else {
+            Style::default().fg(p.subtext0)
+        };
+        let value_style = if value {
+            Style::default().fg(p.green).add_modifier(Modifier::BOLD)
+        } else {
+            Style::default().fg(p.overlay0)
+        };
+        let marker = if highlighted { " ▸ " } else { "   " };
+        let value_text = if value { "[on] " } else { "[off]" };
+        frame.render_widget(
+            Paragraph::new(Line::from(vec![
+                Span::styled(marker, marker_style),
+                Span::styled(value_text, value_style),
+                Span::styled("  ", Style::default()),
+                Span::styled(toggle.label(), label_style),
+            ])),
+            Rect::new(area.x, row_y, area.width, 1),
+        );
+    }
 }
 
 fn render_settings_toggle(

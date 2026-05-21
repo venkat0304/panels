@@ -174,6 +174,15 @@ impl App {
                 SettingsAction::SaveAgentBorderLabels(enabled) => {
                     self.save_agent_border_labels(enabled)
                 }
+                SettingsAction::SaveSidebarHideActions(hidden) => {
+                    self.save_sidebar_hide_actions(hidden)
+                }
+                SettingsAction::SaveSidebarHideFiles(hidden) => {
+                    self.save_sidebar_hide_files(hidden)
+                }
+                SettingsAction::SaveSidebarHideBranch(hidden) => {
+                    self.save_sidebar_hide_branch(hidden)
+                }
             }
         }
         if self.state.agent_panel_scope != previous_agent_panel_scope {

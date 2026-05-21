@@ -160,6 +160,14 @@ fn load_live_config_from_str(content: &str) -> Result<LoadedConfig, Vec<String>>
     );
     load_live_section(
         table,
+        "sidebar",
+        "sidebar config",
+        &mut diagnostics,
+        &mut invalid_sections,
+        |section| config.sidebar = section,
+    );
+    load_live_section(
+        table,
         "advanced",
         "advanced config",
         &mut diagnostics,
