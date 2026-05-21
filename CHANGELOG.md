@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+## [0.5.13] - 2026-05-20
+
+### Fixed
+- In-app update check works again. `UPDATE_MANIFEST_URL` was pointing at `https://panels.dev/latest.json`, which now returns 404 — every install was silently failing the version check and the `update ready` menu entry never appeared. Repointed to the fork-hosted manifest at `https://raw.githubusercontent.com/venkat0304/panels/master/website/latest.json` (no separate domain required). Both the auto-update background check and `panels update` resolve normally now.
+- Repaired `website/latest.json`. A previous PR merge had committed a TypeScript-schema placeholder where valid JSON should be — which is why the release workflow's `update-latest-json` job has been failing on every recent tag. The file is now valid JSON, pinned at the current version, with asset URLs pointing at `venkat0304/panels` releases instead of upstream.
+
 ## [0.5.12] - 2026-05-20
 
 ### Added
