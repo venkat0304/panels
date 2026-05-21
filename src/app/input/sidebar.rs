@@ -293,7 +293,11 @@ impl AppState {
         // Reserve the rightmost cell for `+` plus a one-cell gap.
         let new_w: u16 = 1;
         let gap: u16 = 1;
-        let desired = if self.update_available.is_some() { 6 } else { 4 };
+        let desired = if self.update_available.is_some() {
+            6
+        } else {
+            4
+        };
         let avail = header.width.saturating_sub(new_w + gap);
         let menu_w = desired.min(avail).max(1);
         let x = header.x + header.width.saturating_sub(new_w + gap + menu_w);
