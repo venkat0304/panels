@@ -109,6 +109,128 @@ pub(super) fn render_rename_overlay(app: &AppState, frame: &mut Frame, area: Rec
     );
 }
 
+pub(crate) fn action_editor_button_rects(inner: Rect) -> (Rect, Rect, Rect) {
+    let rects = action_button_row_rects(
+        inner,
+        &[
+            ActionButtonSpec {
+                hint: Some("↵"),
+                label: "save",
+            },
+            ActionButtonSpec {
+                hint: Some("^d"),
+                label: "delete",
+            },
+            ActionButtonSpec {
+                hint: Some("esc"),
+                label: "cancel",
+            },
+        ],
+        2,
+        3,
+    );
+    (rects[0], rects[1], rects[2])
+}
+
+pub(super) fn render_action_editor_overlay(app: &AppState, frame: &mut Frame, area: Rect) {
+    use crate::app::state::ActionField;
+
+    super::dim_background(frame, area);
+    let Some(draft) = app.action_draft.as_ref() else {
+        return;
+    };
+
+    let title = if draft.editing_id.is_some() {
+        "edit action"
+    } else {
+        "new action"
+    };
+
+    let Some(inner) = render_modal_shell(frame, area, 60, 9, &app.palette) else {
+        return;
+    };
+    if inner.height < 6 {
+        return;
+    }
+
+    let rows = Layout::vertical([
+        Constraint::Length(1), // header
+        Constraint::Length(1), // spacer
+        Constraint::Length(1), // name label
+        Constraint::Length(1), // name input
+        Constraint::Length(1), // command label
+        Constraint::Length(1), // command input
+        Constraint::Min(0),
+    ])
+    .areas::<7>(inner);
+
+    render_modal_header(frame, rows[0], title, &app.palette);
+
+    let p = &app.palette;
+    let label_style = Style::default().fg(p.overlay0).add_modifier(Modifier::BOLD);
+    let active = |f: ActionField| {
+        if draft.field == f {
+            Style::default().fg(p.text).bg(p.surface0)
+        } else {
+            Style::default().fg(p.subtext0).bg(p.surface0)
+        }
+    };
+    let caret = |f: ActionField| if draft.field == f { "█" } else { " " };
+
+    frame.render_widget(Paragraph::new(Span::styled(" name", label_style)), rows[2]);
+    let name_rect = Rect::new(rows[3].x, rows[3].y, rows[3].width, 1);
+    frame.render_widget(Clear, name_rect);
+    frame.render_widget(
+        Paragraph::new(format!(" {}{}", draft.name, caret(ActionField::Name)))
+            .style(active(ActionField::Name)),
+        name_rect,
+    );
+
+    frame.render_widget(
+        Paragraph::new(Span::styled(" command", label_style)),
+        rows[4],
+    );
+    let cmd_rect = Rect::new(rows[5].x, rows[5].y, rows[5].width, 1);
+    frame.render_widget(Clear, cmd_rect);
+    frame.render_widget(
+        Paragraph::new(format!(" {}{}", draft.command, caret(ActionField::Command)))
+            .style(active(ActionField::Command)),
+        cmd_rect,
+    );
+
+    let (save_rect, delete_rect, cancel_rect) = action_editor_button_rects(inner);
+    render_action_button(
+        frame,
+        save_rect,
+        Some("↵"),
+        "save",
+        Style::default()
+            .fg(panel_contrast_fg(&app.palette))
+            .bg(app.palette.accent)
+            .add_modifier(Modifier::BOLD),
+    );
+    render_action_button(
+        frame,
+        delete_rect,
+        Some("^d"),
+        "delete",
+        Style::default()
+            .fg(app.palette.text)
+            .bg(app.palette.surface0)
+            .add_modifier(Modifier::BOLD),
+    );
+    render_action_button(
+        frame,
+        cancel_rect,
+        Some("esc"),
+        "cancel",
+        Style::default()
+            .fg(app.palette.text)
+            .bg(app.palette.surface0)
+            .add_modifier(Modifier::BOLD),
+    );
+}
+
 pub(super) fn render_confirm_close_overlay(app: &AppState, frame: &mut Frame, area: Rect) {
     let ws_name = app
         .workspaces

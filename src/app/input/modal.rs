@@ -2,7 +2,9 @@ use crossterm::event::{KeyCode, KeyEvent};
 use ratatui::layout::{Direction, Rect};
 
 use crate::{
-    app::state::{key_matches, AppState, ContextMenuKind, ContextMenuState, MenuListState, Mode},
+    app::state::{
+        key_matches, ActionField, AppState, ContextMenuKind, ContextMenuState, MenuListState, Mode,
+    },
     layout::NavDirection,
 };
 
@@ -548,6 +550,55 @@ impl AppState {
         }
         let idx = (row - rect.y - 1) as usize;
         global_menu_actions(self).get(idx).copied()
+    }
+}
+
+/// Key handling for the ACTIONS create/edit modal.
+///
+/// Enter saves, Esc cancels, Tab switches between the name and command
+/// fields, and Ctrl+D deletes the action when editing an existing one.
+pub(crate) fn handle_action_editor_key(state: &mut AppState, key: KeyEvent) {
+    use crossterm::event::KeyModifiers;
+
+    match key.code {
+        KeyCode::Esc => {
+            state.cancel_action_editor();
+        }
+        KeyCode::Enter => {
+            state.commit_action_editor();
+        }
+        KeyCode::Tab | KeyCode::Down | KeyCode::Up => {
+            if let Some(draft) = state.action_draft.as_mut() {
+                draft.field = match draft.field {
+                    ActionField::Name => ActionField::Command,
+                    ActionField::Command => ActionField::Name,
+                };
+            }
+        }
+        KeyCode::Char('d') if key.modifiers.contains(KeyModifiers::CONTROL) => {
+            state.delete_action_in_editor();
+        }
+        KeyCode::Backspace => {
+            if let Some(draft) = state.action_draft.as_mut() {
+                match draft.field {
+                    ActionField::Name => {
+                        draft.name.pop();
+                    }
+                    ActionField::Command => {
+                        draft.command.pop();
+                    }
+                }
+            }
+        }
+        KeyCode::Char(c) => {
+            if let Some(draft) = state.action_draft.as_mut() {
+                match draft.field {
+                    ActionField::Name => draft.name.push(c),
+                    ActionField::Command => draft.command.push(c),
+                }
+            }
+        }
+        _ => {}
     }
 }
 

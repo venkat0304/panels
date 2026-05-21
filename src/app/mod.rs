@@ -209,6 +209,8 @@ impl App {
         // Try to restore previous session
         let mut restored_terminals = std::collections::HashMap::new();
         let mut restored_terminal_runtimes = std::collections::HashMap::new();
+        let mut restored_actions: Vec<state::ActionItem> = Vec::new();
+        let mut restored_next_action_id: u64 = 1;
         let (
             workspaces,
             active,
@@ -241,6 +243,19 @@ impl App {
             );
             restored_terminals = terminals;
             restored_terminal_runtimes = terminal_runtimes;
+            if let Some(saved) = snap.actions.as_ref() {
+                restored_actions = saved
+                    .iter()
+                    .enumerate()
+                    .map(|(i, a)| state::ActionItem {
+                        id: (i as u64) + 1,
+                        name: a.name.clone(),
+                        command: a.command.clone(),
+                        status: state::ActionStatus::Idle,
+                    })
+                    .collect();
+                restored_next_action_id = (restored_actions.len() as u64) + 1;
+            }
             if ws.is_empty() {
                 crate::logging::session_restored(0, "empty");
                 (
@@ -347,6 +362,9 @@ impl App {
             agent_panel_scroll: 0,
             files_expanded: std::collections::HashSet::new(),
             files_scroll: 0,
+            actions: restored_actions,
+            next_action_id: restored_next_action_id,
+            action_draft: None,
             tab_scroll: 0,
             tab_scroll_follow_active: true,
             mobile_switcher_scroll: 0,
@@ -355,6 +373,8 @@ impl App {
                 sidebar_rect: Rect::default(),
                 workspace_card_areas: Vec::new(),
                 files_rows: Vec::new(),
+                action_rows: Vec::new(),
+                actions_new_button_rect: Rect::default(),
                 tab_bar_rect: Rect::default(),
                 tab_hit_areas: Vec::new(),
                 tab_scroll_left_hit_area: Rect::default(),
@@ -947,6 +967,9 @@ impl App {
             }
             Mode::Settings => {
                 self.handle_settings_key(key_event);
+            }
+            Mode::ActionEditor => {
+                input::handle_action_editor_key(&mut self.state, key_event);
             }
             Mode::Terminal => {
                 // Should not be called in terminal mode.

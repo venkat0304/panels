@@ -520,6 +520,59 @@ pub struct FilesRowArea {
     pub rect: Rect,
 }
 
+/// A user-defined ACTION: a named shell command that can be launched in a
+/// split pane from the sidebar with one click.
+#[derive(Debug, Clone)]
+pub struct ActionItem {
+    pub id: u64,
+    pub name: String,
+    pub command: String,
+    pub status: ActionStatus,
+}
+
+/// Live status of an action, mirroring the agent-state colour scheme.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum ActionStatus {
+    /// Never launched (or reset) — shown dim as "ready".
+    Idle,
+    /// No active pane/workspace to launch from — "select active panel".
+    NeedsTarget,
+    /// Launched and the spawned pane is still alive.
+    Running {
+        ws_idx: usize,
+        pane_id: crate::layout::PaneId,
+    },
+    /// The spawned pane exited. `ok` drives green vs red; `at` is "HH:MM".
+    Done { ok: bool, at: String },
+}
+
+/// Which field the action editor modal is currently editing.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ActionField {
+    Name,
+    Command,
+}
+
+/// In-progress create/edit of an action, driven by the ActionEditor modal.
+#[derive(Debug, Clone)]
+pub struct ActionDraft {
+    /// `Some(id)` when editing an existing action, `None` when creating.
+    pub editing_id: Option<u64>,
+    pub name: String,
+    pub command: String,
+    pub field: ActionField,
+}
+
+/// One visible row in the ACTIONS panel, used for click hit-testing.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct ActionRowArea {
+    pub id: u64,
+    /// The play button at the start of the row.
+    pub play_rect: Rect,
+    /// The rest of the row (clicking it opens the editor).
+    pub row_rect: Rect,
+}
+
 /// Computed view geometry — derived from AppState + terminal size.
 /// Updated before each render, consumed by render and mouse handling.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -533,6 +586,9 @@ pub struct ViewState {
     pub sidebar_rect: Rect,
     pub workspace_card_areas: Vec<WorkspaceCardArea>,
     pub files_rows: Vec<FilesRowArea>,
+    pub action_rows: Vec<ActionRowArea>,
+    /// The "new" button in the ACTIONS panel header.
+    pub actions_new_button_rect: Rect,
     pub tab_bar_rect: Rect,
     pub tab_hit_areas: Vec<Rect>,
     pub tab_scroll_left_hit_area: Rect,
@@ -561,6 +617,7 @@ pub enum Mode {
     Settings,
     GlobalMenu,
     KeybindHelp,
+    ActionEditor,
 }
 
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
@@ -867,6 +924,12 @@ pub struct AppState {
     /// Directories the user has expanded in the filesystem panel.
     pub files_expanded: std::collections::HashSet<std::path::PathBuf>,
     pub files_scroll: usize,
+    /// User-defined ACTIONS shown in the sidebar panel.
+    pub actions: Vec<ActionItem>,
+    /// Monotonic id source for new actions.
+    pub next_action_id: u64,
+    /// Active create/edit session for the ActionEditor modal.
+    pub action_draft: Option<ActionDraft>,
     pub tab_scroll: usize,
     pub tab_scroll_follow_active: bool,
     pub mobile_switcher_scroll: usize,
@@ -1102,6 +1165,9 @@ impl AppState {
             agent_panel_scroll: 0,
             files_expanded: std::collections::HashSet::new(),
             files_scroll: 0,
+            actions: Vec::new(),
+            next_action_id: 1,
+            action_draft: None,
             tab_scroll: 0,
             tab_scroll_follow_active: true,
             mobile_switcher_scroll: 0,
@@ -1110,6 +1176,8 @@ impl AppState {
                 sidebar_rect: Rect::default(),
                 workspace_card_areas: Vec::new(),
                 files_rows: Vec::new(),
+                action_rows: Vec::new(),
+                actions_new_button_rect: Rect::default(),
                 tab_bar_rect: Rect::default(),
                 tab_hit_areas: Vec::new(),
                 tab_scroll_left_hit_area: Rect::default(),

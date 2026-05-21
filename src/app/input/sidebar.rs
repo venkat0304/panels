@@ -2,7 +2,7 @@ use ratatui::layout::Rect;
 
 use crate::app::state::{AppState, Mode, ViewLayout};
 
-use super::ScrollbarClickTarget;
+use super::{ActionPanelHit, ScrollbarClickTarget};
 
 impl AppState {
     pub(super) fn workspace_list_rect(&self) -> Rect {
@@ -22,6 +22,7 @@ impl AppState {
             sidebar,
             self.sidebar_section_split,
             self.files_section_split,
+            self.actions.len(),
         );
         detail_area
     }
@@ -35,6 +36,7 @@ impl AppState {
             sidebar,
             self.sidebar_section_split,
             self.files_section_split,
+            self.actions.len(),
         );
         files_area
     }
@@ -230,6 +232,24 @@ impl AppState {
             .cloned()
     }
 
+    /// What the cursor is over in the ACTIONS panel, if anything.
+    pub(super) fn action_panel_hit(&self, col: u16, row: u16) -> Option<ActionPanelHit> {
+        let in_rect =
+            |r: Rect| r != Rect::default() && row == r.y && col >= r.x && col < r.x + r.width;
+        if in_rect(self.view.actions_new_button_rect) {
+            return Some(ActionPanelHit::New);
+        }
+        for r in &self.view.action_rows {
+            if in_rect(r.play_rect) {
+                return Some(ActionPanelHit::Play(r.id));
+            }
+            if in_rect(r.row_rect) {
+                return Some(ActionPanelHit::Edit(r.id));
+            }
+        }
+        None
+    }
+
     pub(crate) fn sidebar_footer_rect(&self) -> Rect {
         let ws_area = self.workspace_list_rect();
         if ws_area == Rect::default() {
@@ -375,6 +395,7 @@ impl AppState {
             sidebar,
             self.sidebar_section_split,
             self.files_section_split,
+            self.actions.len(),
         );
         let lower_top = agent_area.y;
         let lower_bottom = sidebar.y + sidebar.height;
@@ -517,6 +538,7 @@ impl AppState {
             self.view.sidebar_rect,
             self.sidebar_section_split,
             self.files_section_split,
+            self.actions.len(),
         );
         let rect = crate::ui::agent_panel_toggle_rect(detail_area, self.agent_panel_scope);
         rect.width > 0
@@ -800,6 +822,7 @@ mod tests {
             app.state.view.sidebar_rect,
             app.state.sidebar_section_split,
             app.state.files_section_split,
+            app.state.actions.len(),
         );
         let toggle = crate::ui::agent_panel_toggle_rect(detail_area, app.state.agent_panel_scope);
         app.handle_mouse(mouse(
@@ -856,6 +879,7 @@ mod tests {
             app.state.view.sidebar_rect,
             app.state.sidebar_section_split,
             app.state.files_section_split,
+            app.state.actions.len(),
         );
         app.handle_mouse(mouse(
             MouseEventKind::Down(MouseButton::Left),

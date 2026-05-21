@@ -372,6 +372,15 @@ impl AppState {
                         return None;
                     }
 
+                    if let Some(hit) = self.action_panel_hit(mouse.column, mouse.row) {
+                        match hit {
+                            super::ActionPanelHit::New => self.open_action_editor(None),
+                            super::ActionPanelHit::Play(id) => self.run_action(id),
+                            super::ActionPanelHit::Edit(id) => self.open_action_editor(Some(id)),
+                        }
+                        return None;
+                    }
+
                     if let Some(target) =
                         self.files_panel_scrollbar_target_at(mouse.column, mouse.row)
                     {

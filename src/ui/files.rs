@@ -152,6 +152,7 @@ pub(crate) fn compute_files_rows(app: &AppState, sidebar_area: Rect) -> Vec<File
         sidebar_area,
         app.sidebar_section_split,
         app.files_section_split,
+        app.actions.len(),
     );
     files_rows_for_area(app, files_area, &FsDirReader)
 }

@@ -25,18 +25,20 @@ Run many AI coding agents side by side — each in its own real terminal, organi
 
 ## install
 
-Build from source (the supported path for this build):
+Prebuilt binaries for macOS (arm64/x86_64) and Linux (arm64/x86_64) are published on every release. Install the latest with one command:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/venkat0304/herdr/master/install.sh | sh
+```
+
+This drops `panels` into `~/.local/bin`. Override the install dir with `PREFIX` (e.g. `PREFIX=/usr/local sudo sh install.sh`) or pin a version with `PANELS_VERSION=v0.5.10`.
+
+Or build from source if you prefer:
 
 ```bash
 git clone https://github.com/venkat0304/herdr panels
 cd panels
 cargo build --release
-./target/release/panels
-```
-
-Move the single binary anywhere on your `PATH` and run `panels` from any directory:
-
-```bash
 cp target/release/panels ~/.local/bin/
 ```
 
