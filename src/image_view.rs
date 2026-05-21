@@ -262,7 +262,7 @@ mod tests {
     fn png_is_wrapped_in_chunked_kitty_sequence() {
         // Minimal valid PNG signature + filler payload spanning >1 chunk.
         let mut png = b"\x89PNG\r\n\x1a\n".to_vec();
-        png.extend(std::iter::repeat(0xAB).take(8192));
+        png.extend(std::iter::repeat_n(0xAB, 8192));
 
         let seq = encode_png_kitty(&png).expect("png should encode");
         let text = String::from_utf8_lossy(&seq);
