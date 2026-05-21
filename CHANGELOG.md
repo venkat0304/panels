@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+## [0.5.11] - 2026-05-20
+
+### Changed
+- Sidebar header: `menu` and the new-space button moved from the bottom of the spaces section to the top, sitting on the same row as the `spaces` label. The `new` text label is now a `+` icon for both the spaces section and the actions panel header.
+- README install section rewritten to lead with the `curl | sh` one-liner; build-from-source moved to a secondary section.
+- Canonical repo URLs updated from `venkat0304/herdr` to `venkat0304/panels` in `Cargo.toml`, `install.sh`, and the README (the GitHub repo was renamed; old URLs still redirect).
+
 ## [0.5.10] - 2026-05-20
 
 ### Added

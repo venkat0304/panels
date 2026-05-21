@@ -961,7 +961,7 @@ dependencies = [
 
 [[package]]
 name = "panels"
-version = "0.5.10"
+version = "0.5.11"
 dependencies = [
  "base64",
  "bincode",

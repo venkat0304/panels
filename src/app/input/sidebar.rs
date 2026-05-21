@@ -259,26 +259,45 @@ impl AppState {
         Rect::new(ws_area.x, y, ws_area.width, 1)
     }
 
-    pub(crate) fn sidebar_new_button_rect(&self) -> Rect {
-        let footer = self.sidebar_footer_rect();
-        let width = 5u16.min(footer.width.max(1));
-        Rect::new(footer.x, footer.y, width, footer.height)
+    /// Top row of the workspace list — shared with the " spaces" label and the
+    /// menu/`+` affordances on the right.
+    pub(crate) fn sidebar_header_rect(&self) -> Rect {
+        let ws_area = self.workspace_list_rect();
+        if ws_area == Rect::default() {
+            return Rect::default();
+        }
+        Rect::new(ws_area.x, ws_area.y, ws_area.width, 1)
     }
 
+    /// `+` button at the top-right of the spaces section.
+    pub(crate) fn sidebar_new_button_rect(&self) -> Rect {
+        let header = self.sidebar_header_rect();
+        if header.width == 0 {
+            return Rect::default();
+        }
+        let width = 1u16;
+        let x = header.x + header.width.saturating_sub(width);
+        Rect::new(x, header.y, width, 1)
+    }
+
+    /// `menu` button at the top-right of the spaces section, just left of `+`.
     pub(crate) fn global_launcher_rect(&self) -> Rect {
         if self.view.layout == ViewLayout::Mobile {
             return self.view.mobile_menu_hit_area;
         }
 
-        let footer = self.sidebar_footer_rect();
-        let width = if self.update_available.is_some() {
-            8
-        } else {
-            6
+        let header = self.sidebar_header_rect();
+        if header.width == 0 {
+            return Rect::default();
         }
-        .min(footer.width.max(1));
-        let x = footer.x + footer.width.saturating_sub(width);
-        Rect::new(x, footer.y, width, footer.height)
+        // Reserve the rightmost cell for `+` plus a one-cell gap.
+        let new_w: u16 = 1;
+        let gap: u16 = 1;
+        let desired = if self.update_available.is_some() { 6 } else { 4 };
+        let avail = header.width.saturating_sub(new_w + gap);
+        let menu_w = desired.min(avail).max(1);
+        let x = header.x + header.width.saturating_sub(new_w + gap + menu_w);
+        Rect::new(x, header.y, menu_w, 1)
     }
 
     pub(crate) fn global_menu_labels(&self) -> Vec<&'static str> {
@@ -310,7 +329,14 @@ impl AppState {
         let max_x = screen.x + screen.width.saturating_sub(menu_w);
         let desired_x = launcher.x + launcher.width.saturating_sub(menu_w);
         let x = desired_x.min(max_x);
-        let y = launcher.y.saturating_sub(menu_h);
+        // Prefer opening downward (launcher now lives at the top of the
+        // spaces section); fall back to upward if it would clip the screen.
+        let below = launcher.y.saturating_add(launcher.height);
+        let y = if below + menu_h <= screen.y + screen.height {
+            below
+        } else {
+            launcher.y.saturating_sub(menu_h)
+        };
         Rect::new(x, y, menu_w, menu_h)
     }
 

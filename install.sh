@@ -3,12 +3,12 @@
 # and drops it into $PREFIX/bin (default: ~/.local/bin).
 #
 # Usage:
-#   curl -fsSL https://raw.githubusercontent.com/venkat0304/herdr/master/install.sh | sh
+#   curl -fsSL https://raw.githubusercontent.com/venkat0304/panels/master/install.sh | sh
 #   PANELS_VERSION=v0.5.9 ./install.sh     # pin a specific version
 #   PREFIX=/usr/local sudo ./install.sh    # install to /usr/local/bin
 set -eu
 
-REPO="venkat0304/herdr"
+REPO="venkat0304/panels"
 BIN="panels"
 PREFIX="${PREFIX:-$HOME/.local}"
 INSTALL_DIR="$PREFIX/bin"
