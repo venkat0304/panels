@@ -84,10 +84,9 @@ pub(crate) const MAX_SIDEBAR_WIDTH: u16 = 36;
 // Braille spinner frames — smooth rotation
 const SPINNERS: &[&str] = &["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"];
 
-/// Map spinner_tick (incremented every frame at ~60fps) to a spinner frame.
-/// We want ~8 updates/sec so divide by 8.
+/// Map the 8 FPS animation tick directly to a spinner frame.
 pub(super) fn spinner_frame(tick: u32) -> &'static str {
-    SPINNERS[(tick as usize / 8) % SPINNERS.len()]
+    SPINNERS[(tick as usize) % SPINNERS.len()]
 }
 
 /// Compute view geometry and reconcile pane sizes.
@@ -145,7 +144,7 @@ fn compute_view_internal(
     resize_panes: bool,
     cell_size: crate::kitty_graphics::HostCellSize,
 ) {
-    if is_mobile_width(area) {
+    if is_mobile_width(area) || app.sidebar_top_navigation {
         compute_mobile_view(app, area, resize_panes, cell_size);
         return;
     }
@@ -481,6 +480,23 @@ mod tests {
             app.view.mobile_menu_hit_area.x + app.view.mobile_menu_hit_area.width,
             44
         );
+    }
+
+    #[test]
+    fn top_navigation_uses_header_and_full_width_terminal_on_desktop() {
+        let mut app = crate::app::state::AppState::test_new();
+        app.sidebar_top_navigation = true;
+        app.workspaces = vec![Workspace::test_new("one")];
+        app.active = Some(0);
+        app.selected = 0;
+        app.mode = Mode::Terminal;
+
+        compute_view(&mut app, Rect::new(0, 0, 120, 30));
+
+        assert_eq!(app.view.layout, ViewLayout::Mobile);
+        assert_eq!(app.view.sidebar_rect, Rect::default());
+        assert_eq!(app.view.mobile_header_rect, Rect::new(0, 0, 120, 2));
+        assert_eq!(app.view.terminal_area, Rect::new(0, 2, 120, 28));
     }
 
     #[test]

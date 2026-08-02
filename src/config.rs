@@ -26,7 +26,7 @@ pub use self::{
 pub(crate) use self::io::upsert_top_level_bool;
 
 pub const CONFIG_PATH_ENV_VAR: &str = "PANELS_CONFIG_PATH";
-pub const DEFAULT_SCROLLBACK_LIMIT_BYTES: usize = 10_000_000;
+pub const DEFAULT_SCROLLBACK_LIMIT_BYTES: usize = 2_000_000;
 
 #[cfg(test)]
 pub(crate) fn app_dir_name() -> &'static str {

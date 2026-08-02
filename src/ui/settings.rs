@@ -243,6 +243,7 @@ fn render_settings_sidebar(app: &AppState, frame: &mut Frame, area: Rect) {
             break;
         }
         let value = match toggle {
+            SidebarToggle::TopNavigation => app.sidebar_top_navigation,
             SidebarToggle::HideActions => app.sidebar_hide_actions(),
             SidebarToggle::HideFiles => app.sidebar_hide_files(),
             SidebarToggle::HideBranch => app.sidebar_hide_branch(),

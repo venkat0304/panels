@@ -1290,6 +1290,20 @@ mod tests {
     }
 
     #[test]
+    fn many_agents_cannot_overlap_the_actions_strip() {
+        let area = Rect::new(0, 0, 26, 48);
+        let (_, agents, files) = expanded_sidebar_sections(area, 0.4, 0.25, 10);
+        let actions = actions_panel_rect(area, 0.4, 0.25, 10);
+
+        assert!(agents.y + agents.height <= actions.y);
+        assert!(actions.y + actions.height <= files.y);
+        assert_eq!(
+            actions.height,
+            ACTIONS_HEADER_ROWS + ACTIONS_VISIBLE_CAP as u16
+        );
+    }
+
+    #[test]
     fn actions_panel_hidden_when_sidebar_is_short() {
         // Tiny sidebar: agents must keep priority, so no actions strip.
         assert_eq!(

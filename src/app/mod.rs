@@ -26,7 +26,9 @@ use std::sync::Arc;
 use std::time::{Duration, Instant};
 
 const MIN_RENDER_INTERVAL: Duration = Duration::from_millis(16);
-pub(crate) const ANIMATION_INTERVAL: Duration = Duration::from_millis(16);
+/// Sidebar status animation does not need display-refresh-rate updates. Keeping
+/// this at 8 FPS substantially reduces redraw work with many active agents.
+pub(crate) const ANIMATION_INTERVAL: Duration = Duration::from_millis(125);
 pub(crate) const HEADLESS_ANIMATION_INTERVAL: Duration = Duration::from_millis(128);
 pub(crate) const HEADLESS_ANIMATION_TICK_STEP: u32 = 8;
 const RESIZE_POLL_INTERVAL: Duration = Duration::from_millis(100);
@@ -416,6 +418,7 @@ impl App {
             sidebar_hide_actions: config.sidebar.hide_actions,
             sidebar_hide_files: config.sidebar.hide_files,
             sidebar_hide_branch: config.sidebar.hide_branch,
+            sidebar_top_navigation: config.sidebar.top_navigation,
             kitty_graphics_enabled: config.experimental.kitty_graphics,
             pane_scrollback_limit_bytes: config.advanced.scrollback_limit_bytes,
             accent: crate::config::parse_color(&config.ui.accent),
@@ -784,6 +787,7 @@ impl App {
             self.state.sidebar_hide_actions = config.sidebar.hide_actions;
             self.state.sidebar_hide_files = config.sidebar.hide_files;
             self.state.sidebar_hide_branch = config.sidebar.hide_branch;
+            self.state.sidebar_top_navigation = config.sidebar.top_navigation;
         }
 
         if !invalid_section("experimental") {

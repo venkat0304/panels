@@ -316,6 +316,25 @@ accent = "cyan"
 
 Changing the agent panel scope from the sidebar writes `agent_panel_scope` to config so it survives session resets and upgrades.
 
+## sidebar
+
+```toml
+[sidebar]
+top_navigation = false
+hide_actions = false
+hide_files = false
+hide_branch = false
+```
+
+| option | default | description |
+|--------|---------|-------------|
+| `sidebar.top_navigation` | `false` | replace the left sidebar with the compact top navigation switcher |
+| `sidebar.hide_actions` | `false` | hide the Actions strip |
+| `sidebar.hide_files` | `false` | hide the Files panel |
+| `sidebar.hide_branch` | `false` | hide branch names in workspace cards |
+
+These options can also be changed from the Sidebar tab in Settings.
+
 `accent` accepts:
 - named colors like `cyan`, `blue`, `magenta`
 - hex like `#89b4fa`
@@ -436,14 +455,14 @@ Known limitation: resizing the terminal window or changing the terminal font whi
 
 ```toml
 [advanced]
-scrollback_limit_bytes = 10000000
+scrollback_limit_bytes = 2000000
 ```
 
 ### options
 
 | option | default | description |
 |--------|---------|-------------|
-| `advanced.scrollback_limit_bytes` | `10000000` | maximum scrollback buffer size in bytes retained per pane terminal |
+| `advanced.scrollback_limit_bytes` | `2000000` | maximum scrollback buffer size in bytes retained per pane terminal |
 
 ### scrollback
 

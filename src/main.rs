@@ -173,6 +173,13 @@ const DEFAULT_CONFIG: &str = r##"# panels configuration
 # [ui.sound.agents]
 # droid = "off"
 
+[sidebar]
+# Use the compact top switcher instead of the left sidebar.
+# top_navigation = false
+# hide_actions = false
+# hide_files = false
+# hide_branch = false
+
 [experimental]
 # Allow launching panels from inside a panels-managed pane.
 # allow_nested = false
@@ -183,7 +190,7 @@ const DEFAULT_CONFIG: &str = r##"# panels configuration
 [advanced]
 # Maximum scrollback buffer size in bytes retained per pane terminal.
 # Matches Ghostty's default scrollback-limit behavior.
-# scrollback_limit_bytes = 10000000
+# scrollback_limit_bytes = 2000000
 "##;
 
 fn should_block_nested(config: &config::Config) -> bool {

@@ -66,6 +66,8 @@ pub struct Config {
 #[derive(Debug, Default, Deserialize)]
 #[serde(default)]
 pub struct SidebarConfig {
+    /// Use the compact top navigation switcher instead of the left sidebar.
+    pub top_navigation: bool,
     /// Hide the entire ACTIONS panel. Default: false.
     pub hide_actions: bool,
     /// Hide the entire FILES panel. Default: false.
@@ -184,7 +186,7 @@ pub struct UiConfig {
 #[derive(Debug, Deserialize)]
 #[serde(default)]
 pub struct AdvancedConfig {
-    /// Maximum scrollback buffer size in bytes retained per pane terminal. Default: 10000000.
+    /// Maximum scrollback buffer size in bytes retained per pane terminal. Default: 2000000.
     #[serde(alias = "scrollback_lines")]
     pub scrollback_limit_bytes: usize,
 }
@@ -412,6 +414,15 @@ delivery = "terminal"
             config.advanced.scrollback_limit_bytes,
             DEFAULT_SCROLLBACK_LIMIT_BYTES
         );
+    }
+
+    #[test]
+    fn sidebar_top_navigation_defaults_off_and_parses() {
+        let default_config = Config::default();
+        assert!(!default_config.sidebar.top_navigation);
+
+        let config: Config = toml::from_str("[sidebar]\ntop_navigation = true\n").unwrap();
+        assert!(config.sidebar.top_navigation);
     }
 
     #[test]

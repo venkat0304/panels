@@ -17,6 +17,7 @@ pub(super) enum SettingsAction {
     SaveSound(bool),
     SaveToastDelivery(ToastDelivery),
     SaveAgentBorderLabels(bool),
+    SaveSidebarTopNavigation(bool),
     SaveSidebarHideActions(bool),
     SaveSidebarHideFiles(bool),
     SaveSidebarHideBranch(bool),
@@ -31,6 +32,9 @@ impl App {
                 SettingsAction::SaveToastDelivery(delivery) => self.save_toast_delivery(delivery),
                 SettingsAction::SaveAgentBorderLabels(enabled) => {
                     self.save_agent_border_labels(enabled)
+                }
+                SettingsAction::SaveSidebarTopNavigation(enabled) => {
+                    self.save_sidebar_top_navigation(enabled)
                 }
                 SettingsAction::SaveSidebarHideActions(hidden) => {
                     self.save_sidebar_hide_actions(hidden)
@@ -48,6 +52,7 @@ impl App {
 
 fn sidebar_toggle_current(state: &AppState, toggle: SidebarToggle) -> bool {
     match toggle {
+        SidebarToggle::TopNavigation => state.sidebar_top_navigation,
         SidebarToggle::HideActions => state.sidebar_hide_actions(),
         SidebarToggle::HideFiles => state.sidebar_hide_files(),
         SidebarToggle::HideBranch => state.sidebar_hide_branch(),
@@ -56,6 +61,7 @@ fn sidebar_toggle_current(state: &AppState, toggle: SidebarToggle) -> bool {
 
 fn sidebar_toggle_action(toggle: SidebarToggle, hidden: bool) -> SettingsAction {
     match toggle {
+        SidebarToggle::TopNavigation => SettingsAction::SaveSidebarTopNavigation(hidden),
         SidebarToggle::HideActions => SettingsAction::SaveSidebarHideActions(hidden),
         SidebarToggle::HideFiles => SettingsAction::SaveSidebarHideFiles(hidden),
         SidebarToggle::HideBranch => SettingsAction::SaveSidebarHideBranch(hidden),

@@ -94,6 +94,14 @@ impl App {
         }
     }
 
+    pub(super) fn save_sidebar_top_navigation(&mut self, enabled: bool) {
+        if self.update_config_file("sidebar top_navigation", |content| {
+            crate::config::upsert_section_bool(content, "sidebar", "top_navigation", enabled)
+        }) {
+            self.apply_config_from_disk(false);
+        }
+    }
+
     pub(super) fn save_sidebar_hide_files(&mut self, hidden: bool) {
         if self.update_config_file("sidebar hide_files", |content| {
             crate::config::upsert_section_bool(content, "sidebar", "hide_files", hidden)

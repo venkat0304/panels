@@ -661,22 +661,26 @@ impl SettingsSection {
     }
 }
 
-/// Identifies one of the three toggle rows in the Sidebar settings tab.
+/// Identifies a toggle row in the Sidebar settings tab.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-// All three variants share a `Hide` prefix on purpose — that's the
-// semantic for the entire enum.
-#[allow(clippy::enum_variant_names)]
 pub enum SidebarToggle {
+    TopNavigation,
     HideActions,
     HideFiles,
     HideBranch,
 }
 
 impl SidebarToggle {
-    pub const ALL: &[Self] = &[Self::HideActions, Self::HideFiles, Self::HideBranch];
+    pub const ALL: &[Self] = &[
+        Self::TopNavigation,
+        Self::HideActions,
+        Self::HideFiles,
+        Self::HideBranch,
+    ];
 
     pub fn label(self) -> &'static str {
         match self {
+            Self::TopNavigation => "move navigation to top",
             Self::HideActions => "hide actions panel",
             Self::HideFiles => "hide files panel",
             Self::HideBranch => "hide branch in spaces",
@@ -993,6 +997,8 @@ pub struct AppState {
     pub sidebar_width_source: SidebarWidthSource,
     pub sidebar_width_auto: bool,
     pub sidebar_collapsed: bool,
+    /// Render the compact navigation switcher above the terminal instead of a left sidebar.
+    pub sidebar_top_navigation: bool,
     /// Ratio of sidebar height allocated to the workspaces section.
     pub sidebar_section_split: f32,
     /// Ratio of the lower (non-spaces) region allocated to the files panel.
@@ -1262,6 +1268,7 @@ impl AppState {
             sidebar_width_source: SidebarWidthSource::ConfigDefault,
             sidebar_width_auto: false,
             sidebar_collapsed: false,
+            sidebar_top_navigation: false,
             sidebar_section_split: 0.5,
             files_section_split: 0.35,
             agent_panel_scope: AgentPanelScope::AllWorkspaces,
