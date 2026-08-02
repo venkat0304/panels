@@ -277,6 +277,11 @@ impl AppState {
                     open_new_tab_dialog(self);
                     return None;
                 }
+                if let Some(ws_idx) = self.top_workspace_at(mouse.column, mouse.row) {
+                    self.switch_workspace(ws_idx);
+                    self.mode = Mode::Terminal;
+                    return None;
+                }
 
                 if in_sidebar {
                     if self.sidebar_collapsed {
@@ -654,6 +659,16 @@ impl AppState {
             }
 
             MouseEventKind::ScrollUp | MouseEventKind::ScrollDown
+                if self.on_top_workspace_bar(mouse.column, mouse.row) =>
+            {
+                match mouse.kind {
+                    MouseEventKind::ScrollUp => self.previous_workspace(),
+                    MouseEventKind::ScrollDown => self.next_workspace(),
+                    _ => {}
+                }
+            }
+
+            MouseEventKind::ScrollUp | MouseEventKind::ScrollDown
                 if !in_sidebar && self.scroll_selection_with_wheel(mouse) => {}
 
             MouseEventKind::ScrollUp | MouseEventKind::ScrollDown if !in_sidebar => {
@@ -734,6 +749,21 @@ impl AppState {
                     self.selected = idx;
                     self.context_menu = Some(ContextMenuState {
                         kind: ContextMenuKind::Workspace { ws_idx: idx },
+                        x: mouse.column,
+                        y: mouse.row,
+                        list: MenuListState::new(0),
+                    });
+                    self.mode = Mode::ContextMenu;
+                }
+            }
+
+            MouseEventKind::Down(MouseButton::Right)
+                if self.top_workspace_at(mouse.column, mouse.row).is_some() =>
+            {
+                if let Some(ws_idx) = self.top_workspace_at(mouse.column, mouse.row) {
+                    self.selected = ws_idx;
+                    self.context_menu = Some(ContextMenuState {
+                        kind: ContextMenuKind::Workspace { ws_idx },
                         x: mouse.column,
                         y: mouse.row,
                         list: MenuListState::new(0),
@@ -935,6 +965,33 @@ impl AppState {
                     && col < area.x + area.width)
                     .then_some(idx)
             })
+    }
+
+    pub(super) fn top_workspace_at(&self, col: u16, row: u16) -> Option<usize> {
+        if self.view.layout != ViewLayout::TopNavigation {
+            return None;
+        }
+        self.view.workspace_card_areas.iter().find_map(|tab| {
+            let area = tab.rect;
+            (area.width > 0
+                && row >= area.y
+                && row < area.y + area.height
+                && col >= area.x
+                && col < area.x + area.width)
+                .then_some(tab.ws_idx)
+        })
+    }
+
+    pub(super) fn on_top_workspace_bar(&self, col: u16, row: u16) -> bool {
+        if self.view.layout != ViewLayout::TopNavigation {
+            return false;
+        }
+        let area = self.view.workspace_tab_bar_rect;
+        area.width > 0
+            && row >= area.y
+            && row < area.y + area.height
+            && col >= area.x
+            && col < area.x + area.width
     }
 
     pub(super) fn on_tab_bar(&self, col: u16, row: u16) -> bool {
@@ -1908,6 +1965,58 @@ mod tests {
 
         assert_eq!(app.state.active, Some(1));
         assert_eq!(app.state.mode, Mode::Terminal);
+    }
+
+    #[test]
+    fn top_workspace_tabs_switch_directly_without_opening_mobile_panel() {
+        let mut app = app_for_mouse_test();
+        app.state.sidebar_top_navigation = true;
+        app.state.workspaces = vec![
+            Workspace::test_new("one"),
+            Workspace::test_new("two"),
+            Workspace::test_new("three"),
+        ];
+        app.state.active = Some(0);
+        app.state.selected = 0;
+        app.state.mode = Mode::Terminal;
+
+        crate::ui::compute_view(&mut app.state, Rect::new(0, 0, 106, 20));
+        let second = app.state.view.workspace_card_areas[1].rect;
+        app.handle_mouse(mouse(
+            MouseEventKind::Down(MouseButton::Left),
+            second.x + 1,
+            second.y,
+        ));
+
+        assert_eq!(app.state.active, Some(1));
+        assert_eq!(app.state.selected, 1);
+        assert_eq!(app.state.mode, Mode::Terminal);
+        assert_eq!(app.state.view.layout, ViewLayout::TopNavigation);
+    }
+
+    #[test]
+    fn top_workspace_tabs_open_workspace_context_menu() {
+        let mut app = app_for_mouse_test();
+        app.state.sidebar_top_navigation = true;
+        app.state.workspaces = vec![Workspace::test_new("one"), Workspace::test_new("two")];
+        app.state.active = Some(0);
+        app.state.selected = 0;
+        app.state.mode = Mode::Terminal;
+
+        crate::ui::compute_view(&mut app.state, Rect::new(0, 0, 106, 20));
+        let second = app.state.view.workspace_card_areas[1].rect;
+        app.handle_mouse(mouse(
+            MouseEventKind::Down(MouseButton::Right),
+            second.x + 1,
+            second.y,
+        ));
+
+        assert_eq!(app.state.selected, 1);
+        assert_eq!(app.state.mode, Mode::ContextMenu);
+        assert!(matches!(
+            app.state.context_menu.as_ref().map(|menu| menu.kind),
+            Some(ContextMenuKind::Workspace { ws_idx: 1 })
+        ));
     }
 
     #[test]

@@ -373,6 +373,7 @@ impl App {
             view: state::ViewState {
                 layout: state::ViewLayout::Desktop,
                 sidebar_rect: Rect::default(),
+                workspace_tab_bar_rect: Rect::default(),
                 workspace_card_areas: Vec::new(),
                 files_rows: Vec::new(),
                 action_rows: Vec::new(),

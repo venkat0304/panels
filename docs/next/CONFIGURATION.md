@@ -328,7 +328,7 @@ hide_branch = false
 
 | option | default | description |
 |--------|---------|-------------|
-| `sidebar.top_navigation` | `false` | replace the left sidebar with the compact top navigation switcher |
+| `sidebar.top_navigation` | `false` | replace the left sidebar with horizontal workspace tabs above the regular tab bar |
 | `sidebar.hide_actions` | `false` | hide the Actions strip |
 | `sidebar.hide_files` | `false` | hide the Files panel |
 | `sidebar.hide_branch` | `false` | hide branch names in workspace cards |

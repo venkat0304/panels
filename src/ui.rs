@@ -18,6 +18,7 @@ mod settings;
 mod sidebar;
 mod status;
 mod tabs;
+mod top_navigation;
 mod widgets;
 
 use self::dialogs::{
@@ -52,6 +53,7 @@ use self::settings::render_settings_overlay;
 use self::sidebar::{render_sidebar, render_sidebar_collapsed};
 use self::status::{render_config_diagnostic, render_toast_notification, toast_notification_rect};
 use self::tabs::render_tab_bar;
+use self::top_navigation::{compute_workspace_tab_areas, render_workspace_tabs};
 pub(crate) use self::{
     dialogs::{confirm_close_button_rects, confirm_close_popup_rect, rename_button_rects},
     settings::settings_button_rects,
@@ -144,7 +146,11 @@ fn compute_view_internal(
     resize_panes: bool,
     cell_size: crate::kitty_graphics::HostCellSize,
 ) {
-    if is_mobile_width(area) || app.sidebar_top_navigation {
+    if app.sidebar_top_navigation {
+        compute_top_navigation_view(app, area, resize_panes, cell_size);
+        return;
+    }
+    if is_mobile_width(area) {
         compute_mobile_view(app, area, resize_panes, cell_size);
         return;
     }
@@ -239,10 +245,87 @@ fn compute_view_internal(
     app.view = crate::app::ViewState {
         layout: ViewLayout::Desktop,
         sidebar_rect: sidebar_area,
+        workspace_tab_bar_rect: Rect::default(),
         workspace_card_areas,
         files_rows,
         action_rows,
         actions_new_button_rect,
+        tab_bar_rect,
+        tab_hit_areas: tab_bar_view.tab_hit_areas,
+        tab_scroll_left_hit_area: tab_bar_view.scroll_left_hit_area,
+        tab_scroll_right_hit_area: tab_bar_view.scroll_right_hit_area,
+        new_tab_hit_area: tab_bar_view.new_tab_hit_area,
+        terminal_area,
+        mobile_header_rect: Rect::default(),
+        mobile_menu_hit_area: Rect::default(),
+        toast_hit_area,
+        pane_infos,
+        split_borders,
+    };
+}
+
+fn compute_top_navigation_view(
+    app: &mut AppState,
+    area: Rect,
+    resize_panes: bool,
+    cell_size: crate::kitty_graphics::HostCellSize,
+) {
+    let workspace_bar_height = area.height.min(1);
+    let workspace_tab_bar_rect = Rect::new(area.x, area.y, area.width, workspace_bar_height);
+    let remaining = Rect::new(
+        area.x,
+        area.y.saturating_add(workspace_bar_height),
+        area.width,
+        area.height.saturating_sub(workspace_bar_height),
+    );
+    let has_tabs = app.active.and_then(|i| app.workspaces.get(i)).is_some();
+    let (tab_bar_rect, terminal_area) = if has_tabs && remaining.height > 1 {
+        let [tab_bar_rect, terminal_area] =
+            Layout::vertical([Constraint::Length(1), Constraint::Min(1)]).areas(remaining);
+        (tab_bar_rect, terminal_area)
+    } else {
+        (Rect::default(), remaining)
+    };
+
+    let workspace_card_areas = compute_workspace_tab_areas(app, workspace_tab_bar_rect);
+    let tab_bar_view = app
+        .active
+        .and_then(|i| app.workspaces.get(i))
+        .map(|ws| {
+            compute_tab_bar_view(
+                ws,
+                tab_bar_rect,
+                app.tab_scroll,
+                app.tab_scroll_follow_active,
+                app.mouse_capture,
+            )
+        })
+        .unwrap_or_default();
+    app.tab_scroll = tab_bar_view.scroll;
+
+    let split_borders = app
+        .active
+        .and_then(|i| app.workspaces.get(i))
+        .map(|ws| ws.layout.splits(terminal_area))
+        .unwrap_or_default();
+    let pane_infos = compute_pane_infos(app, terminal_area, resize_panes, cell_size);
+    if resize_panes {
+        resize_background_tab_panes_to_terminal_area(app, terminal_area, cell_size);
+    }
+    let toast_hit_area = app
+        .toast
+        .as_ref()
+        .map(|toast| toast_notification_rect(terminal_area, toast, app.config_diagnostic.is_some()))
+        .unwrap_or_default();
+
+    app.view = crate::app::ViewState {
+        layout: ViewLayout::TopNavigation,
+        sidebar_rect: Rect::default(),
+        workspace_tab_bar_rect,
+        workspace_card_areas,
+        files_rows: Vec::new(),
+        action_rows: Vec::new(),
+        actions_new_button_rect: Rect::default(),
         tab_bar_rect,
         tab_hit_areas: tab_bar_view.tab_hit_areas,
         tab_scroll_left_hit_area: tab_bar_view.scroll_left_hit_area,
@@ -299,6 +382,7 @@ fn compute_mobile_view(
     app.view = crate::app::ViewState {
         layout: ViewLayout::Mobile,
         sidebar_rect: Rect::default(),
+        workspace_tab_bar_rect: Rect::default(),
         workspace_card_areas: Vec::new(),
         files_rows: Vec::new(),
         action_rows: Vec::new(),
@@ -323,12 +407,15 @@ pub fn render(app: &AppState, frame: &mut Frame) {
     let tab_bar_area = app.view.tab_bar_rect;
     let terminal_area = app.view.terminal_area;
 
-    if app.view.layout == ViewLayout::Mobile {
-        render_mobile_header(app, frame, app.view.mobile_header_rect);
-    } else if app.sidebar_collapsed {
-        render_sidebar_collapsed(app, frame, sidebar_area);
-    } else {
-        render_sidebar(app, frame, sidebar_area);
+    match app.view.layout {
+        ViewLayout::Mobile => render_mobile_header(app, frame, app.view.mobile_header_rect),
+        ViewLayout::TopNavigation => {
+            render_workspace_tabs(app, frame, app.view.workspace_tab_bar_rect)
+        }
+        ViewLayout::Desktop if app.sidebar_collapsed => {
+            render_sidebar_collapsed(app, frame, sidebar_area)
+        }
+        ViewLayout::Desktop => render_sidebar(app, frame, sidebar_area),
     }
     if app.view.layout != ViewLayout::Mobile {
         render_tab_bar(app, frame, tab_bar_area);
@@ -483,20 +570,73 @@ mod tests {
     }
 
     #[test]
-    fn top_navigation_uses_header_and_full_width_terminal_on_desktop() {
+    fn top_navigation_uses_workspace_and_numbered_tab_rows_on_desktop() {
         let mut app = crate::app::state::AppState::test_new();
         app.sidebar_top_navigation = true;
-        app.workspaces = vec![Workspace::test_new("one")];
-        app.active = Some(0);
-        app.selected = 0;
+        app.workspaces = vec![
+            Workspace::test_new("one"),
+            Workspace::test_new("two"),
+            Workspace::test_new("three"),
+        ];
+        app.active = Some(1);
+        app.selected = 1;
         app.mode = Mode::Terminal;
 
         compute_view(&mut app, Rect::new(0, 0, 120, 30));
 
-        assert_eq!(app.view.layout, ViewLayout::Mobile);
+        assert_eq!(app.view.layout, ViewLayout::TopNavigation);
         assert_eq!(app.view.sidebar_rect, Rect::default());
-        assert_eq!(app.view.mobile_header_rect, Rect::new(0, 0, 120, 2));
+        assert_eq!(app.view.workspace_tab_bar_rect, Rect::new(0, 0, 120, 1));
+        assert_eq!(app.view.workspace_card_areas.len(), 3);
+        assert_eq!(app.view.tab_bar_rect, Rect::new(0, 1, 120, 1));
+        assert_eq!(app.view.mobile_header_rect, Rect::default());
+        assert_eq!(app.view.mobile_menu_hit_area, Rect::default());
         assert_eq!(app.view.terminal_area, Rect::new(0, 2, 120, 28));
+    }
+
+    #[test]
+    fn top_navigation_renders_active_workspace_with_accent_background() {
+        let mut app = crate::app::state::AppState::test_new();
+        app.sidebar_top_navigation = true;
+        app.workspaces = vec![Workspace::test_new("one"), Workspace::test_new("two")];
+        app.active = Some(1);
+        app.selected = 1;
+        app.mode = Mode::Terminal;
+
+        compute_view(&mut app, Rect::new(0, 0, 80, 20));
+        let backend = TestBackend::new(80, 20);
+        let mut terminal = Terminal::new(backend).unwrap();
+        terminal.draw(|frame| render(&app, frame)).unwrap();
+        let buffer = terminal.backend().buffer();
+
+        let inactive = app.view.workspace_card_areas[0].rect;
+        let active = app.view.workspace_card_areas[1].rect;
+        assert_eq!(
+            buffer[(inactive.x, inactive.y)].style().bg,
+            Some(app.palette.surface0)
+        );
+        assert_eq!(
+            buffer[(active.x, active.y)].style().bg,
+            Some(app.palette.accent)
+        );
+        assert!(!app.view.tab_hit_areas.is_empty());
+    }
+
+    #[test]
+    fn top_navigation_never_falls_back_to_mobile_switcher() {
+        let mut app = crate::app::state::AppState::test_new();
+        app.sidebar_top_navigation = true;
+        app.workspaces = vec![Workspace::test_new("one"), Workspace::test_new("two")];
+        app.active = Some(0);
+        app.selected = 0;
+
+        compute_view(&mut app, Rect::new(0, 0, 44, 20));
+
+        assert_eq!(app.view.layout, ViewLayout::TopNavigation);
+        assert_eq!(app.view.workspace_tab_bar_rect, Rect::new(0, 0, 44, 1));
+        assert_eq!(app.view.workspace_card_areas.len(), 2);
+        assert_eq!(app.view.tab_bar_rect, Rect::new(0, 1, 44, 1));
+        assert_eq!(app.view.mobile_menu_hit_area, Rect::default());
     }
 
     #[test]

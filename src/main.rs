@@ -174,7 +174,7 @@ const DEFAULT_CONFIG: &str = r##"# panels configuration
 # droid = "off"
 
 [sidebar]
-# Use the compact top switcher instead of the left sidebar.
+# Use horizontal workspace tabs instead of the left sidebar.
 # top_navigation = false
 # hide_actions = false
 # hide_files = false

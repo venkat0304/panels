@@ -146,6 +146,10 @@ impl AppState {
             return;
         }
 
+        if self.view.layout == ViewLayout::TopNavigation {
+            return;
+        }
+
         if self.sidebar_collapsed {
             return;
         }

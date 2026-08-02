@@ -66,7 +66,7 @@ pub struct Config {
 #[derive(Debug, Default, Deserialize)]
 #[serde(default)]
 pub struct SidebarConfig {
-    /// Use the compact top navigation switcher instead of the left sidebar.
+    /// Use horizontal workspace tabs instead of the left sidebar.
     pub top_navigation: bool,
     /// Hide the entire ACTIONS panel. Default: false.
     pub hide_actions: bool,

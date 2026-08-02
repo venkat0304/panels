@@ -578,12 +578,14 @@ pub struct ActionRowArea {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ViewLayout {
     Desktop,
+    TopNavigation,
     Mobile,
 }
 
 pub struct ViewState {
     pub layout: ViewLayout,
     pub sidebar_rect: Rect,
+    pub workspace_tab_bar_rect: Rect,
     pub workspace_card_areas: Vec<WorkspaceCardArea>,
     pub files_rows: Vec<FilesRowArea>,
     pub action_rows: Vec<ActionRowArea>,
@@ -997,7 +999,7 @@ pub struct AppState {
     pub sidebar_width_source: SidebarWidthSource,
     pub sidebar_width_auto: bool,
     pub sidebar_collapsed: bool,
-    /// Render the compact navigation switcher above the terminal instead of a left sidebar.
+    /// Render workspace tabs above the terminal instead of a left sidebar.
     pub sidebar_top_navigation: bool,
     /// Ratio of sidebar height allocated to the workspaces section.
     pub sidebar_section_split: f32,
@@ -1233,6 +1235,7 @@ impl AppState {
             view: ViewState {
                 layout: ViewLayout::Desktop,
                 sidebar_rect: Rect::default(),
+                workspace_tab_bar_rect: Rect::default(),
                 workspace_card_areas: Vec::new(),
                 files_rows: Vec::new(),
                 action_rows: Vec::new(),
