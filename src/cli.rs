@@ -434,7 +434,9 @@ fn server_stop_alias(args: &[String]) -> std::io::Result<i32> {
         return Ok(code);
     }
 
-    crate::server::autodetect::wait_for_server_shutdown(Duration::from_secs(5))?;
+    crate::server::autodetect::wait_for_server_shutdown(
+        crate::server::autodetect::SERVER_SHUTDOWN_TIMEOUT,
+    )?;
     println!("panels server stopped");
     Ok(0)
 }
@@ -453,7 +455,7 @@ fn server_start(args: &[String]) -> std::io::Result<i32> {
     let pid = crate::server::autodetect::spawn_server_daemon()?;
     crate::server::autodetect::wait_for_server_socket(
         &crate::server::headless::client_socket_path(),
-        Duration::from_secs(5),
+        crate::server::autodetect::SERVER_READY_TIMEOUT,
     )?;
     println!("panels server started (pid {pid})");
     Ok(0)
@@ -475,7 +477,9 @@ fn server_restart(args: &[String]) -> std::io::Result<i32> {
         if code != 0 {
             return Ok(code);
         }
-        crate::server::autodetect::wait_for_server_shutdown(Duration::from_secs(5))?;
+        crate::server::autodetect::wait_for_server_shutdown(
+            crate::server::autodetect::SERVER_SHUTDOWN_TIMEOUT,
+        )?;
     }
 
     server_start(&[])

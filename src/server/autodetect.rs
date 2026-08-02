@@ -2,7 +2,7 @@
 //!
 //! When the user runs `panels` with no subcommand:
 //! 1. Check if a server is already listening on the client socket
-//! 2. If no server → spawn one as a background daemon → wait for socket readiness (up to 5s)
+//! 2. If no server → spawn one as a background daemon → wait for socket readiness
 //! 3. Attach as a thin client to the server
 //!
 //! The `--no-session` flag bypasses server/client entirely and runs monolithically
@@ -22,7 +22,11 @@ use super::headless::client_socket_path;
 
 /// Maximum time to wait for the server's client socket to become ready
 /// after spawning the server process.
-const SERVER_READY_TIMEOUT: Duration = Duration::from_secs(5);
+pub(crate) const SERVER_READY_TIMEOUT: Duration = Duration::from_secs(15);
+
+/// Maximum time to wait for both server sockets to stop accepting connections.
+/// Restored panes can take several seconds to terminate during a clean shutdown.
+pub(crate) const SERVER_SHUTDOWN_TIMEOUT: Duration = Duration::from_secs(15);
 
 /// Poll interval when waiting for the server socket to appear.
 const SOCKET_POLL_INTERVAL: Duration = Duration::from_millis(50);
@@ -194,6 +198,7 @@ pub fn wait_for_server_socket(socket_path: &Path, timeout: Duration) -> io::Resu
     ))
 }
 
+#[cfg(test)]
 fn wait_for_server_shutdown_at(socket_path: &Path, timeout: Duration) -> io::Result<()> {
     let deadline = std::time::Instant::now() + timeout;
 
@@ -214,9 +219,43 @@ fn wait_for_server_shutdown_at(socket_path: &Path, timeout: Duration) -> io::Res
     ))
 }
 
-/// Waits for the server's client socket to stop accepting connections.
+fn wait_for_server_shutdown_paths(
+    client_socket_path: &Path,
+    api_socket_path: &Path,
+    timeout: Duration,
+) -> io::Result<()> {
+    let deadline = std::time::Instant::now() + timeout;
+
+    while std::time::Instant::now() < deadline {
+        // The client listener closes early in shutdown. The API socket path is
+        // removed only when the server handle drops after pane cleanup, so it
+        // is the inexpensive signal that a following start can bind safely.
+        if !is_server_listening_at(client_socket_path) && !api_socket_path.exists() {
+            return Ok(());
+        }
+        std::thread::sleep(SOCKET_POLL_INTERVAL);
+    }
+
+    Err(io::Error::new(
+        io::ErrorKind::TimedOut,
+        format!(
+            "server did not stop within {}s (client socket: {}, API socket: {})",
+            timeout.as_secs(),
+            client_socket_path.display(),
+            api_socket_path.display()
+        ),
+    ))
+}
+
+/// Waits for both the client and API sockets to stop accepting connections.
+///
+/// Waiting for only the client socket can race with a following start: the
+/// client listener closes before pane cleanup finishes and before the API
+/// listener releases its socket.
 pub fn wait_for_server_shutdown(timeout: Duration) -> io::Result<()> {
-    wait_for_server_shutdown_at(&client_socket_path(), timeout)
+    let client_path = client_socket_path();
+    let api_path = crate::api::socket_path();
+    wait_for_server_shutdown_paths(&client_path, &api_path, timeout)
 }
 
 // ---------------------------------------------------------------------------
@@ -419,6 +458,36 @@ mod tests {
 
         closer.join().unwrap();
         assert!(result.is_ok());
+        let _ = std::fs::remove_dir_all(dir);
+    }
+
+    #[test]
+    fn wait_for_server_shutdown_paths_waits_for_api_listener_too() {
+        let dir = unique_test_dir("wait-stop-both");
+        std::fs::create_dir_all(&dir).unwrap();
+        let client_path = dir.join("panels-client.sock");
+        let api_path = dir.join("panels.sock");
+        let client_listener = UnixListener::bind(&client_path).unwrap();
+        let api_listener = UnixListener::bind(&api_path).unwrap();
+
+        let closer = std::thread::spawn(move || {
+            std::thread::sleep(Duration::from_millis(50));
+            drop(client_listener);
+            std::thread::sleep(Duration::from_millis(100));
+            drop(api_listener);
+            std::fs::remove_file(&api_path).unwrap();
+        });
+
+        let started = std::time::Instant::now();
+        let result = wait_for_server_shutdown_paths(
+            &client_path,
+            &dir.join("panels.sock"),
+            Duration::from_secs(2),
+        );
+
+        closer.join().unwrap();
+        assert!(result.is_ok());
+        assert!(started.elapsed() >= Duration::from_millis(100));
         let _ = std::fs::remove_dir_all(dir);
     }
 
