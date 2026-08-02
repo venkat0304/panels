@@ -174,6 +174,9 @@ impl App {
                 SettingsAction::SaveAgentBorderLabels(enabled) => {
                     self.save_agent_border_labels(enabled)
                 }
+                SettingsAction::SaveSidebarTopNavigation(enabled) => {
+                    self.save_sidebar_top_navigation(enabled)
+                }
                 SettingsAction::SaveSidebarHideActions(hidden) => {
                     self.save_sidebar_hide_actions(hidden)
                 }
