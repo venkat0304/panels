@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## [0.5.14] - 2026-08-02
+
 ### Added
 - Added optional top navigation through `sidebar.top_navigation` and the Sidebar settings screen. Spaces appear as horizontal tabs, the active space is highlighted, and its numbered terminal tabs remain on the row below. Right-aligned **Actions**, **Settings**, and **+** controls run or create actions, open settings, and create spaces.
 - Added convenient `panels start`, `panels stop`, `panels restart`, and `panels upgrade` commands. Compatible upgrades can be installed from a managed pane without stopping its server; protocol-changing upgrades still require detaching first.
