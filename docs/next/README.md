@@ -48,7 +48,17 @@ Requires Linux or macOS. For prebuilt binaries of the original project, see upst
 panels
 ```
 
-By default `panels` launches or attaches to one background session server. Press `ctrl+b q` to detach the client — agents keep running. Use `panels server stop` to stop the default server, or `--no-session` for single-process mode.
+By default `panels` launches or attaches to one background session server. Press `ctrl+b q` to detach the client — agents keep running. Use the lifecycle commands from your outer shell when you need to replace that server:
+
+```bash
+panels stop       # stop the server and its panes
+panels start      # start the server without attaching
+panels restart    # stop, wait, and start again
+panels             # attach to the running server
+panels upgrade    # install the latest release (alias: panels update)
+```
+
+`panels restart` must run outside a managed pane because stopping the server terminates its panes. Use `--no-session` for single-process mode.
 
 Named sessions are separate persistent servers, each with its own panes, tabs, workspaces, and state, sharing one global config file:
 

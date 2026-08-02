@@ -447,6 +447,26 @@ struct RunningServerUpdatePlan {
     requires_stop: bool,
 }
 
+fn update_plan_for_context(
+    plan: Option<RunningServerUpdatePlan>,
+    inside_panels: bool,
+) -> Result<Option<RunningServerUpdatePlan>, String> {
+    if !inside_panels {
+        return Ok(plan);
+    }
+
+    if plan.as_ref().is_some_and(|plan| plan.requires_stop) {
+        return Err(
+            "this upgrade changes the client/server protocol; detach first, then run `panels upgrade` in the outer shell"
+                .into(),
+        );
+    }
+
+    // Never stop the server from one of its own panes: shutting down the
+    // server also terminates the updater process before installation.
+    Ok(None)
+}
+
 fn plan_running_server_update(
     release: &ReleaseInfo,
 ) -> Result<Option<RunningServerUpdatePlan>, String> {
@@ -651,10 +671,6 @@ pub fn self_update() -> Result<Version, String> {
         ));
     }
 
-    if running_inside_panels() {
-        return Err("run `panels update` outside panels after detaching from the session".into());
-    }
-
     eprintln!("checking for updates...");
 
     let current = Version::current();
@@ -667,7 +683,10 @@ pub fn self_update() -> Result<Version, String> {
         }
     };
 
-    let running_server_plan = plan_running_server_update(&release)?;
+    let running_server_plan = update_plan_for_context(
+        plan_running_server_update(&release)?,
+        running_inside_panels(),
+    )?;
 
     eprintln!("downloading v{}...", release.version);
     if let Err(e) =
@@ -1008,6 +1027,29 @@ mod tests {
         assert!(!update_requires_server_stop(&server, &compatible_release));
         assert!(update_requires_server_stop(&server, &incompatible_release));
         assert!(update_requires_server_stop(&server, &unknown_release));
+    }
+
+    #[test]
+    fn managed_pane_upgrade_keeps_compatible_server_and_rejects_protocol_change() {
+        let server = crate::api::RuntimeStatus {
+            version: Some("0.5.13".to_string()),
+            protocol: Some(6),
+        };
+        let compatible = RunningServerUpdatePlan {
+            server: server.clone(),
+            requires_stop: false,
+        };
+        let incompatible = RunningServerUpdatePlan {
+            server,
+            requires_stop: true,
+        };
+
+        assert!(update_plan_for_context(Some(compatible), true)
+            .unwrap()
+            .is_none());
+        assert!(update_plan_for_context(Some(incompatible), true)
+            .unwrap_err()
+            .contains("detach first"));
     }
 
     #[test]

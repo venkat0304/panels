@@ -194,6 +194,31 @@ pub fn wait_for_server_socket(socket_path: &Path, timeout: Duration) -> io::Resu
     ))
 }
 
+fn wait_for_server_shutdown_at(socket_path: &Path, timeout: Duration) -> io::Result<()> {
+    let deadline = std::time::Instant::now() + timeout;
+
+    while std::time::Instant::now() < deadline {
+        if !is_server_listening_at(socket_path) {
+            return Ok(());
+        }
+        std::thread::sleep(SOCKET_POLL_INTERVAL);
+    }
+
+    Err(io::Error::new(
+        io::ErrorKind::TimedOut,
+        format!(
+            "server did not stop within {}s (socket: {})",
+            timeout.as_secs(),
+            socket_path.display()
+        ),
+    ))
+}
+
+/// Waits for the server's client socket to stop accepting connections.
+pub fn wait_for_server_shutdown(timeout: Duration) -> io::Result<()> {
+    wait_for_server_shutdown_at(&client_socket_path(), timeout)
+}
+
 // ---------------------------------------------------------------------------
 // Auto-detect launch
 // ---------------------------------------------------------------------------
@@ -374,6 +399,25 @@ mod tests {
 
         // Wait with a generous timeout — should succeed.
         let result = wait_for_server_socket(&path, Duration::from_secs(2));
+        assert!(result.is_ok());
+        let _ = std::fs::remove_dir_all(dir);
+    }
+
+    #[test]
+    fn wait_for_server_shutdown_succeeds_after_listener_closes() {
+        let dir = unique_test_dir("wait-stop");
+        std::fs::create_dir_all(&dir).unwrap();
+        let client_path = dir.join("panels-client.sock");
+        let listener = UnixListener::bind(&client_path).unwrap();
+
+        let closer = std::thread::spawn(move || {
+            std::thread::sleep(Duration::from_millis(50));
+            drop(listener);
+        });
+
+        let result = wait_for_server_shutdown_at(&client_path, Duration::from_secs(2));
+
+        closer.join().unwrap();
         assert!(result.is_ok());
         let _ = std::fs::remove_dir_all(dir);
     }

@@ -26,6 +26,9 @@ pub fn maybe_run(args: &[String]) -> std::io::Result<CommandOutcome> {
     };
 
     let exit_code = match command {
+        "start" => server_start(&args[2..])?,
+        "stop" => server_stop_alias(&args[2..])?,
+        "restart" => server_restart(&args[2..])?,
         "server" => {
             let Some(exit_code) = run_server_command(&args[2..])? else {
                 return Ok(CommandOutcome::NotCli);
@@ -407,12 +410,74 @@ fn run_session_command(args: &[String]) -> std::io::Result<i32> {
 }
 
 fn server_stop(args: &[String]) -> std::io::Result<i32> {
+    stop_server(args, "panels server stop")
+}
+
+fn server_stop_alias(args: &[String]) -> std::io::Result<i32> {
+    stop_server(args, "panels stop")
+}
+
+fn stop_server(args: &[String], usage: &str) -> std::io::Result<i32> {
     if !args.is_empty() {
-        eprintln!("usage: panels server stop");
+        eprintln!("usage: {usage}");
         return Ok(2);
     }
 
-    send_ok_request(Method::ServerStop(EmptyParams::default()))
+    if !crate::server::autodetect::is_server_listening() {
+        println!("panels server is not running");
+        return Ok(0);
+    }
+
+    let code = send_ok_request(Method::ServerStop(EmptyParams::default()))?;
+    if code != 0 {
+        return Ok(code);
+    }
+
+    crate::server::autodetect::wait_for_server_shutdown(Duration::from_secs(5))?;
+    println!("panels server stopped");
+    Ok(0)
+}
+
+fn server_start(args: &[String]) -> std::io::Result<i32> {
+    if !args.is_empty() {
+        eprintln!("usage: panels start");
+        return Ok(2);
+    }
+
+    if crate::server::autodetect::is_server_listening() {
+        println!("panels server is already running");
+        return Ok(0);
+    }
+
+    let pid = crate::server::autodetect::spawn_server_daemon()?;
+    crate::server::autodetect::wait_for_server_socket(
+        &crate::server::headless::client_socket_path(),
+        Duration::from_secs(5),
+    )?;
+    println!("panels server started (pid {pid})");
+    Ok(0)
+}
+
+fn server_restart(args: &[String]) -> std::io::Result<i32> {
+    if !args.is_empty() {
+        eprintln!("usage: panels restart");
+        return Ok(2);
+    }
+
+    if std::env::var(crate::PANELS_ENV_VAR).ok().as_deref() == Some(crate::PANELS_ENV_VALUE) {
+        eprintln!("detach from panels first, then run `panels restart` in the outer shell");
+        return Ok(1);
+    }
+
+    if crate::server::autodetect::is_server_listening() {
+        let code = send_ok_request(Method::ServerStop(EmptyParams::default()))?;
+        if code != 0 {
+            return Ok(code);
+        }
+        crate::server::autodetect::wait_for_server_shutdown(Duration::from_secs(5))?;
+    }
+
+    server_start(&[])
 }
 
 fn server_reload_config(args: &[String]) -> std::io::Result<i32> {
@@ -2062,6 +2127,11 @@ fn print_server_help() {
     eprintln!("  panels server                run as headless server");
     eprintln!("  panels server stop           stop the running server via the API socket");
     eprintln!("  panels server reload-config  reload config.toml in the running server");
+    eprintln!();
+    eprintln!("Short aliases:");
+    eprintln!("  panels start                 start the background server");
+    eprintln!("  panels stop                  stop the background server");
+    eprintln!("  panels restart               restart the background server");
 }
 
 fn print_status_help() {

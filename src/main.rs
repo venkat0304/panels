@@ -263,7 +263,7 @@ fn main() -> io::Result<()> {
         return client::run_client();
     }
 
-    if args.get(1).map(|s| s.as_str()) == Some("update") {
+    if matches!(args.get(1).map(|s| s.as_str()), Some("update" | "upgrade")) {
         match update::self_update() {
             Ok(_) => return Ok(()),
             Err(e) => {
@@ -284,6 +284,8 @@ fn main() -> io::Result<()> {
         println!("       panels --session <name> [options]");
         println!("       panels --remote <ssh-target> [--session <name>]");
         println!("       panels session attach <name>");
+        println!("       panels start|stop|restart");
+        println!("       panels upgrade");
         println!("       panels update");
         println!("       panels server stop");
         println!("       panels server reload-config");
@@ -298,6 +300,10 @@ fn main() -> io::Result<()> {
         println!("Common commands:");
         for (command, description) in [
             ("panels", "Launch or attach to the persistent session"),
+            ("panels start", "Start the background server"),
+            ("panels stop", "Stop the background server"),
+            ("panels restart", "Restart the background server"),
+            ("panels upgrade", "Download and install the latest version"),
             (
                 "panels status [server|client]",
                 "Show local client and running server status",
@@ -399,6 +405,10 @@ fn main() -> io::Result<()> {
                 "client",
                 "remote-client-bridge",
                 "update",
+                "upgrade",
+                "start",
+                "stop",
+                "restart",
                 "status",
                 "workspace",
                 "pane",

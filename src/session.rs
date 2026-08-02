@@ -182,12 +182,20 @@ pub fn stop_session(name: Option<&str>) -> Result<SessionInfo, String> {
 
 fn stop_session_with_timeout(name: Option<&str>, timeout: Duration) -> Result<SessionInfo, String> {
     let socket_path = api_socket_path_for(name);
+    stop_session_at(name, &socket_path, timeout)
+}
+
+fn stop_session_at(
+    name: Option<&str>,
+    socket_path: &Path,
+    timeout: Duration,
+) -> Result<SessionInfo, String> {
     let request = serde_json::json!({
         "id": "cli:session:stop",
         "method": "server.stop",
         "params": {}
     });
-    let mut stream = UnixStream::connect(&socket_path).map_err(|err| {
+    let mut stream = UnixStream::connect(socket_path).map_err(|err| {
         format!(
             "session {} is not running or cannot be reached at {}: {err}",
             name.unwrap_or(DEFAULT_SESSION_NAME),
@@ -208,7 +216,7 @@ fn stop_session_with_timeout(name: Option<&str>, timeout: Duration) -> Result<Se
     if let Some(error) = response.get("error") {
         return Err(error.to_string());
     }
-    if !wait_until_stopped(&socket_path, timeout) {
+    if !wait_until_stopped(socket_path, timeout) {
         return Err(format!(
             "session {} did not stop within {}ms; socket is still reachable at {}",
             name.unwrap_or(DEFAULT_SESSION_NAME),
@@ -544,11 +552,9 @@ mod tests {
 
     #[test]
     fn stop_session_fails_when_socket_remains_reachable_after_timeout() {
-        let _guard = env_lock().lock().unwrap();
         let config_home = PathBuf::from(format!("/tmp/hs-stop-{}", std::process::id()));
-        std::env::set_var("XDG_CONFIG_HOME", &config_home);
         let session_name = "slow";
-        let socket_path = api_socket_path_for(Some(session_name));
+        let socket_path = config_home.join("panels.sock");
         std::fs::create_dir_all(socket_path.parent().unwrap()).unwrap();
         let _ = std::fs::remove_file(&socket_path);
         let listener = std::os::unix::net::UnixListener::bind(&socket_path).unwrap();
@@ -574,7 +580,7 @@ mod tests {
             }
         });
 
-        let err = stop_session_with_timeout(Some(session_name), Duration::from_millis(75))
+        let err = stop_session_at(Some(session_name), &socket_path, Duration::from_millis(75))
             .expect_err("still-running session should fail");
 
         assert!(err.contains("did not stop"), "{err}");
@@ -585,7 +591,6 @@ mod tests {
         keep_running.store(false, Ordering::Relaxed);
         handle.join().unwrap();
         let _ = std::fs::remove_dir_all(&config_home);
-        std::env::remove_var("XDG_CONFIG_HOME");
     }
 
     #[test]

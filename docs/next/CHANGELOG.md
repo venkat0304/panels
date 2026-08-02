@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Added convenient `panels start`, `panels stop`, `panels restart`, and `panels upgrade` commands. Compatible upgrades can now be installed from a managed pane without stopping its server; protocol-changing upgrades still require detaching first.
+
 - Updated the vendored `libghostty-vt` terminal engine, regenerated its Rust bindings, and moved all build jobs to Zig 0.16.0, restoring compatibility with current macOS SDKs.
 - Fixed Kitty graphics setup passing the wrong pointer type while disabling temporary-file image loading.
 - Reduced repeated agent-panel allocations during redraw and removed an unused agent detail field.
