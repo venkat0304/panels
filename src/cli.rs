@@ -410,16 +410,17 @@ fn run_session_command(args: &[String]) -> std::io::Result<i32> {
 }
 
 fn server_stop(args: &[String]) -> std::io::Result<i32> {
-    stop_server(args, "panels server stop")
+    if !args.is_empty() {
+        eprintln!("usage: panels server stop");
+        return Ok(2);
+    }
+
+    send_ok_request(Method::ServerStop(EmptyParams::default()))
 }
 
 fn server_stop_alias(args: &[String]) -> std::io::Result<i32> {
-    stop_server(args, "panels stop")
-}
-
-fn stop_server(args: &[String], usage: &str) -> std::io::Result<i32> {
     if !args.is_empty() {
-        eprintln!("usage: {usage}");
+        eprintln!("usage: panels stop");
         return Ok(2);
     }
 
