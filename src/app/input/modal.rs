@@ -75,6 +75,53 @@ pub(crate) enum GlobalMenuAction {
     Settings,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum ActionsMenuAction {
+    Add,
+    Run(u64),
+}
+
+pub(super) fn actions_menu_actions(state: &AppState) -> Vec<ActionsMenuAction> {
+    std::iter::once(ActionsMenuAction::Add)
+        .chain(
+            state
+                .actions
+                .iter()
+                .map(|action| ActionsMenuAction::Run(action.id)),
+        )
+        .collect()
+}
+
+pub(super) fn open_actions_menu(state: &mut AppState) {
+    state.actions_menu = MenuListState::new(0);
+    state.mode = Mode::ActionsMenu;
+}
+
+pub(super) fn apply_actions_menu_action(state: &mut AppState, action: ActionsMenuAction) {
+    match action {
+        ActionsMenuAction::Add => state.open_action_editor(None),
+        ActionsMenuAction::Run(id) => {
+            leave_modal(state);
+            state.run_action(id);
+        }
+    }
+}
+
+pub(crate) fn handle_actions_menu_key(state: &mut AppState, key: KeyEvent) {
+    let actions = actions_menu_actions(state);
+    match key.code {
+        KeyCode::Esc => leave_modal(state),
+        KeyCode::Up | KeyCode::Char('k') => state.actions_menu.move_prev(),
+        KeyCode::Down | KeyCode::Char('j') => state.actions_menu.move_next(actions.len()),
+        KeyCode::Enter => {
+            if let Some(action) = actions.get(state.actions_menu.highlighted).copied() {
+                apply_actions_menu_action(state, action);
+            }
+        }
+        _ => {}
+    }
+}
+
 pub(super) fn global_menu_actions(state: &AppState) -> Vec<GlobalMenuAction> {
     let mut actions = vec![
         GlobalMenuAction::Settings,
@@ -550,6 +597,19 @@ impl AppState {
         }
         let idx = (row - rect.y - 1) as usize;
         global_menu_actions(self).get(idx).copied()
+    }
+
+    pub(super) fn actions_menu_item_at(&self, col: u16, row: u16) -> Option<ActionsMenuAction> {
+        let rect = self.actions_menu_rect();
+        if col <= rect.x
+            || col >= rect.x + rect.width.saturating_sub(1)
+            || row <= rect.y
+            || row >= rect.y + rect.height.saturating_sub(1)
+        {
+            return None;
+        }
+        let idx = self.actions_menu_visible_start() + (row - rect.y - 1) as usize;
+        actions_menu_actions(self).get(idx).copied()
     }
 }
 

@@ -9,6 +9,49 @@ use super::widgets::panel_contrast_fg;
 use crate::app::{state::WorkspaceCardArea, AppState, Mode};
 
 const MIN_WORKSPACE_TAB_WIDTH: u16 = 8;
+const ACTIONS_BUTTON_WIDTH: u16 = 7;
+const SETTINGS_BUTTON_WIDTH: u16 = 8;
+const NEW_WORKSPACE_BUTTON_WIDTH: u16 = 1;
+
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub(crate) struct TopNavigationAreas {
+    pub workspace_tabs: Rect,
+    pub actions: Rect,
+    pub settings: Rect,
+    pub new_workspace: Rect,
+}
+
+pub(crate) fn top_navigation_areas(area: Rect) -> TopNavigationAreas {
+    if area.width == 0 || area.height == 0 {
+        return TopNavigationAreas::default();
+    }
+
+    let left = area.x;
+    let mut right = area.x.saturating_add(area.width);
+    let new_workspace = take_right(left, &mut right, area.y, NEW_WORKSPACE_BUTTON_WIDTH);
+    reserve_gap(left, &mut right);
+    let settings = take_right(left, &mut right, area.y, SETTINGS_BUTTON_WIDTH);
+    reserve_gap(left, &mut right);
+    let actions = take_right(left, &mut right, area.y, ACTIONS_BUTTON_WIDTH);
+    reserve_gap(left, &mut right);
+
+    TopNavigationAreas {
+        workspace_tabs: Rect::new(left, area.y, right.saturating_sub(left), 1),
+        actions,
+        settings,
+        new_workspace,
+    }
+}
+
+fn take_right(left: u16, right: &mut u16, y: u16, desired: u16) -> Rect {
+    let width = desired.min(right.saturating_sub(left));
+    *right = right.saturating_sub(width);
+    Rect::new(*right, y, width, 1)
+}
+
+fn reserve_gap(left: u16, right: &mut u16) {
+    *right = right.saturating_sub(u16::from(*right > left));
+}
 
 pub(crate) fn compute_workspace_tab_areas(app: &AppState, area: Rect) -> Vec<WorkspaceCardArea> {
     let workspace_count = app.workspaces.len();
@@ -97,4 +140,38 @@ pub(super) fn render_workspace_tabs(app: &AppState, frame: &mut Frame, area: Rec
             app.workspaces[tab.ws_idx].display_name_from(&app.terminals, &app.terminal_runtimes);
         frame.render_widget(Paragraph::new(format!(" {name} ")).style(style), tab.rect);
     }
+
+    let controls = top_navigation_areas(area);
+    render_control(
+        frame,
+        controls.actions,
+        "actions",
+        app.mode == Mode::ActionsMenu,
+        app,
+    );
+    render_control(
+        frame,
+        controls.settings,
+        "settings",
+        app.mode == Mode::GlobalMenu,
+        app,
+    );
+    render_control(frame, controls.new_workspace, "+", false, app);
+}
+
+fn render_control(frame: &mut Frame, area: Rect, label: &str, active: bool, app: &AppState) {
+    if area.width == 0 {
+        return;
+    }
+    let style = if active {
+        Style::default()
+            .fg(panel_contrast_fg(&app.palette))
+            .bg(app.palette.accent)
+            .add_modifier(Modifier::BOLD)
+    } else {
+        Style::default()
+            .fg(app.palette.overlay1)
+            .bg(app.palette.surface0)
+    };
+    frame.render_widget(Paragraph::new(label).style(style), area);
 }

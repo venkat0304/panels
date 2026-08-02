@@ -618,6 +618,7 @@ pub enum Mode {
     ContextMenu,
     Settings,
     GlobalMenu,
+    ActionsMenu,
     KeybindHelp,
     ActionEditor,
 }
@@ -1036,6 +1037,8 @@ pub struct AppState {
     pub settings: SettingsState,
     /// Highlight state for the bottom-right global launcher menu.
     pub global_menu: MenuListState,
+    /// Highlight state for the top-navigation Actions dropdown.
+    pub actions_menu: MenuListState,
     /// Resolved host terminal default colors for theming embedded panes.
     pub host_terminal_theme: TerminalTheme,
     /// Set when a persisted session snapshot would change.
@@ -1364,6 +1367,7 @@ impl AppState {
                 original_theme: None,
             },
             global_menu: MenuListState::new(0),
+            actions_menu: MenuListState::new(0),
             host_terminal_theme: TerminalTheme::default(),
             session_dirty: false,
         }

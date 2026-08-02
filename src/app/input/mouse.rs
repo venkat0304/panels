@@ -16,9 +16,10 @@ use crate::{
 use super::WheelRouting;
 use super::{
     modal::{
-        apply_context_menu_action, apply_global_menu_action, apply_rename_action,
-        confirm_close_accept, confirm_close_cancel, global_menu_actions, leave_modal,
-        modal_action_from_buttons, open_global_menu, open_new_tab_dialog, ModalAction,
+        actions_menu_actions, apply_actions_menu_action, apply_context_menu_action,
+        apply_global_menu_action, apply_rename_action, confirm_close_accept, confirm_close_cancel,
+        global_menu_actions, leave_modal, modal_action_from_buttons, open_actions_menu,
+        open_global_menu, open_new_tab_dialog, ModalAction,
     },
     settings::SettingsAction,
     ScrollbarClickTarget, TAB_DRAG_THRESHOLD, WORKSPACE_DRAG_THRESHOLD,
@@ -70,22 +71,56 @@ impl AppState {
             return self.handle_settings_mouse(mouse);
         }
 
-        let launcher_enabled = self.view.layout != ViewLayout::Mobile
-            && !self.sidebar_collapsed
-            && matches!(
-                self.mode,
-                Mode::Terminal
-                    | Mode::Navigate
-                    | Mode::Resize
-                    | Mode::GlobalMenu
-                    | Mode::KeybindHelp
-            );
+        let top_navigation = self.view.layout == ViewLayout::TopNavigation;
+        let chrome_mode = matches!(
+            self.mode,
+            Mode::Terminal
+                | Mode::Navigate
+                | Mode::Resize
+                | Mode::GlobalMenu
+                | Mode::ActionsMenu
+                | Mode::KeybindHelp
+        );
+        let launcher_enabled = chrome_mode
+            && (top_navigation
+                || (self.view.layout != ViewLayout::Mobile && !self.sidebar_collapsed));
         let launcher = self.global_launcher_rect();
         let launcher_hit = launcher_enabled
             && mouse.column >= launcher.x
             && mouse.column < launcher.x + launcher.width
             && mouse.row >= launcher.y
             && mouse.row < launcher.y + launcher.height;
+
+        let top_actions = self.top_actions_button_rect();
+        let top_actions_hit = chrome_mode && rect_contains(top_actions, mouse.column, mouse.row);
+        let top_new_workspace = self.sidebar_new_button_rect();
+        let top_new_workspace_hit = top_navigation
+            && chrome_mode
+            && rect_contains(top_new_workspace, mouse.column, mouse.row);
+
+        if matches!(mouse.kind, MouseEventKind::Moved) && self.mode == Mode::ActionsMenu {
+            let actions = actions_menu_actions(self);
+            let hovered = self
+                .actions_menu_item_at(mouse.column, mouse.row)
+                .and_then(|action| actions.iter().position(|item| *item == action));
+            self.actions_menu.hover(hovered);
+            return None;
+        }
+
+        if matches!(mouse.kind, MouseEventKind::Down(MouseButton::Left)) && top_new_workspace_hit {
+            leave_modal(self);
+            self.request_new_workspace = true;
+            return None;
+        }
+
+        if matches!(mouse.kind, MouseEventKind::Down(MouseButton::Left)) && top_actions_hit {
+            if self.mode == Mode::ActionsMenu {
+                leave_modal(self);
+            } else {
+                open_actions_menu(self);
+            }
+            return None;
+        }
 
         if matches!(mouse.kind, MouseEventKind::Moved) && self.mode == Mode::GlobalMenu {
             let actions = global_menu_actions(self);
@@ -109,6 +144,17 @@ impl AppState {
             if matches!(mouse.kind, MouseEventKind::Down(MouseButton::Left)) {
                 if let Some(action) = self.global_menu_item_at(mouse.column, mouse.row) {
                     apply_global_menu_action(self, action);
+                } else {
+                    leave_modal(self);
+                }
+            }
+            return None;
+        }
+
+        if self.mode == Mode::ActionsMenu {
+            if matches!(mouse.kind, MouseEventKind::Down(MouseButton::Left)) {
+                if let Some(action) = self.actions_menu_item_at(mouse.column, mouse.row) {
+                    apply_actions_menu_action(self, action);
                 } else {
                     leave_modal(self);
                 }
@@ -1424,7 +1470,10 @@ mod tests {
     };
     use super::*;
     use crate::{
-        app::state::{ContextMenuKind, ContextMenuState, MenuListState, Mode, ViewLayout},
+        app::state::{
+            ActionItem, ActionStatus, ContextMenuKind, ContextMenuState, MenuListState, Mode,
+            ViewLayout,
+        },
         detect::{Agent, AgentState},
         workspace::Workspace,
     };
@@ -2017,6 +2066,95 @@ mod tests {
             app.state.context_menu.as_ref().map(|menu| menu.kind),
             Some(ContextMenuKind::Workspace { ws_idx: 1 })
         ));
+    }
+
+    #[test]
+    fn top_navigation_settings_button_opens_global_menu() {
+        let mut app = app_for_mouse_test();
+        app.state.sidebar_top_navigation = true;
+        app.state.workspaces = vec![Workspace::test_new("one")];
+        app.state.active = Some(0);
+        app.state.selected = 0;
+        app.state.mode = Mode::Terminal;
+
+        crate::ui::compute_view(&mut app.state, Rect::new(0, 0, 106, 20));
+        let settings = app.state.global_launcher_rect();
+        app.handle_mouse(mouse(
+            MouseEventKind::Down(MouseButton::Left),
+            settings.x + 1,
+            settings.y,
+        ));
+
+        assert_eq!(app.state.mode, Mode::GlobalMenu);
+        assert!(app.state.global_menu_rect().y > settings.y);
+    }
+
+    #[test]
+    fn top_navigation_plus_requests_new_workspace() {
+        let mut app = app_for_mouse_test();
+        app.state.sidebar_top_navigation = true;
+        app.state.workspaces = vec![Workspace::test_new("one")];
+        app.state.active = Some(0);
+        app.state.selected = 0;
+        app.state.mode = Mode::Terminal;
+
+        crate::ui::compute_view(&mut app.state, Rect::new(0, 0, 106, 20));
+        let plus = app.state.sidebar_new_button_rect();
+        app.handle_mouse(mouse(
+            MouseEventKind::Down(MouseButton::Left),
+            plus.x,
+            plus.y,
+        ));
+
+        assert!(app.state.request_new_workspace);
+    }
+
+    #[test]
+    fn top_navigation_actions_menu_adds_or_runs_actions() {
+        let mut app = app_for_mouse_test();
+        app.state.sidebar_top_navigation = true;
+        app.state.workspaces = vec![Workspace::test_new("one")];
+        app.state.active = Some(0);
+        app.state.selected = 0;
+        app.state.mode = Mode::Terminal;
+        app.state.actions = vec![ActionItem {
+            id: 7,
+            name: "tests".into(),
+            command: String::new(),
+            status: ActionStatus::Idle,
+        }];
+
+        crate::ui::compute_view(&mut app.state, Rect::new(0, 0, 106, 20));
+        let actions = app.state.top_actions_button_rect();
+        app.handle_mouse(mouse(
+            MouseEventKind::Down(MouseButton::Left),
+            actions.x + 1,
+            actions.y,
+        ));
+        assert_eq!(app.state.mode, Mode::ActionsMenu);
+
+        let menu = app.state.actions_menu_rect();
+        app.handle_mouse(mouse(
+            MouseEventKind::Down(MouseButton::Left),
+            menu.x + 2,
+            menu.y + 2,
+        ));
+        assert_eq!(app.state.mode, Mode::Terminal);
+        assert_eq!(app.state.actions[0].status, ActionStatus::NeedsTarget);
+
+        app.handle_mouse(mouse(
+            MouseEventKind::Down(MouseButton::Left),
+            actions.x + 1,
+            actions.y,
+        ));
+        let menu = app.state.actions_menu_rect();
+        app.handle_mouse(mouse(
+            MouseEventKind::Down(MouseButton::Left),
+            menu.x + 2,
+            menu.y + 1,
+        ));
+        assert_eq!(app.state.mode, Mode::ActionEditor);
+        assert!(app.state.action_draft.is_some());
     }
 
     #[test]

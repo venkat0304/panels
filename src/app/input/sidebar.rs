@@ -280,6 +280,9 @@ impl AppState {
 
     /// `+` button at the top-right of the spaces section.
     pub(crate) fn sidebar_new_button_rect(&self) -> Rect {
+        if self.view.layout == ViewLayout::TopNavigation {
+            return crate::ui::top_navigation_areas(self.view.workspace_tab_bar_rect).new_workspace;
+        }
         let header = self.sidebar_header_rect();
         if header.width == 0 {
             return Rect::default();
@@ -293,6 +296,9 @@ impl AppState {
     pub(crate) fn global_launcher_rect(&self) -> Rect {
         if self.view.layout == ViewLayout::Mobile {
             return self.view.mobile_menu_hit_area;
+        }
+        if self.view.layout == ViewLayout::TopNavigation {
+            return crate::ui::top_navigation_areas(self.view.workspace_tab_bar_rect).settings;
         }
 
         let header = self.sidebar_header_rect();
@@ -311,6 +317,53 @@ impl AppState {
         let menu_w = desired.min(avail).max(1);
         let x = header.x + header.width.saturating_sub(new_w + gap + menu_w);
         Rect::new(x, header.y, menu_w, 1)
+    }
+
+    pub(crate) fn top_actions_button_rect(&self) -> Rect {
+        if self.view.layout != ViewLayout::TopNavigation {
+            return Rect::default();
+        }
+        crate::ui::top_navigation_areas(self.view.workspace_tab_bar_rect).actions
+    }
+
+    pub(crate) fn actions_menu_rect(&self) -> Rect {
+        let screen = self.screen_rect();
+        let launcher = self.top_actions_button_rect();
+        if launcher == Rect::default() {
+            return Rect::default();
+        }
+        let content_width = self
+            .actions
+            .iter()
+            .map(|action| action.name.chars().count() as u16 + 3)
+            .max()
+            .unwrap_or(10)
+            .max("+ add action".len() as u16)
+            .saturating_add(2);
+        let menu_w = content_width.saturating_add(2).min(screen.width.max(1));
+        let menu_h = (self.actions.len() as u16 + 3).min(screen.height.max(1));
+        let max_x = screen.x + screen.width.saturating_sub(menu_w);
+        let desired_x = launcher.x + launcher.width.saturating_sub(menu_w);
+        let x = desired_x.min(max_x);
+        let below = launcher.y.saturating_add(launcher.height);
+        let y = if below + menu_h <= screen.y + screen.height {
+            below
+        } else {
+            launcher.y.saturating_sub(menu_h)
+        };
+        Rect::new(x, y, menu_w, menu_h)
+    }
+
+    pub(crate) fn actions_menu_visible_start(&self) -> usize {
+        let visible = self.actions_menu_rect().height.saturating_sub(2) as usize;
+        let item_count = self.actions.len().saturating_add(1);
+        if visible == 0 || item_count <= visible {
+            return 0;
+        }
+        self.actions_menu
+            .highlighted
+            .saturating_sub(visible.saturating_sub(1))
+            .min(item_count.saturating_sub(visible))
     }
 
     pub(crate) fn global_menu_labels(&self) -> Vec<&'static str> {

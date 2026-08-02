@@ -151,6 +151,46 @@ pub(super) fn render_global_launcher_menu(app: &AppState, frame: &mut Frame) {
     }
 }
 
+pub(super) fn render_actions_menu(app: &AppState, frame: &mut Frame) {
+    let rect = app.actions_menu_rect();
+    let Some(inner) = render_panel_shell(frame, rect, app.palette.accent, app.palette.panel_bg)
+    else {
+        return;
+    };
+
+    let items = std::iter::once("+ add action".to_string())
+        .chain(
+            app.actions
+                .iter()
+                .map(|action| format!("▶ {}", action.name)),
+        )
+        .collect::<Vec<_>>();
+    let start = app.actions_menu_visible_start();
+    for (visible_idx, (idx, item)) in items
+        .iter()
+        .enumerate()
+        .skip(start)
+        .take(inner.height as usize)
+        .enumerate()
+    {
+        let selected = idx == app.actions_menu.highlighted;
+        let style = if selected {
+            Style::default()
+                .fg(panel_contrast_fg(&app.palette))
+                .bg(app.palette.accent)
+                .add_modifier(Modifier::BOLD)
+        } else {
+            Style::default().fg(app.palette.text)
+        };
+        frame.render_widget(
+            Paragraph::new(format!(" {item} "))
+                .style(style)
+                .alignment(Alignment::Left),
+            Rect::new(inner.x, inner.y + visible_idx as u16, inner.width, 1),
+        );
+    }
+}
+
 pub(super) fn render_resize_overlay(app: &AppState, frame: &mut Frame, area: Rect) {
     let key = Style::default()
         .fg(app.palette.accent)

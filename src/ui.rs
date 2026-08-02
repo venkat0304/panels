@@ -29,7 +29,7 @@ pub(crate) use self::files::{
 };
 use self::keybind_help::render_keybind_help_overlay;
 use self::menus::{
-    render_context_menu, render_global_launcher_menu, render_navigate_overlay,
+    render_actions_menu, render_context_menu, render_global_launcher_menu, render_navigate_overlay,
     render_resize_overlay,
 };
 use self::mobile::{
@@ -74,6 +74,7 @@ pub(crate) use self::{
     },
     panes::pane_is_scrolled_back,
     tabs::compute_tab_bar_view,
+    top_navigation::top_navigation_areas,
     widgets::{centered_popup_rect, modal_stack_areas},
 };
 use crate::app::state::ViewLayout;
@@ -287,7 +288,8 @@ fn compute_top_navigation_view(
         (Rect::default(), remaining)
     };
 
-    let workspace_card_areas = compute_workspace_tab_areas(app, workspace_tab_bar_rect);
+    let top_areas = top_navigation_areas(workspace_tab_bar_rect);
+    let workspace_card_areas = compute_workspace_tab_areas(app, top_areas.workspace_tabs);
     let tab_bar_view = app
         .active
         .and_then(|i| app.workspaces.get(i))
@@ -439,6 +441,7 @@ pub fn render(app: &AppState, frame: &mut Frame) {
             render_rename_overlay(app, frame, frame.area())
         }
         Mode::GlobalMenu => render_global_launcher_menu(app, frame),
+        Mode::ActionsMenu => render_actions_menu(app, frame),
         Mode::KeybindHelp => render_keybind_help_overlay(app, frame),
         Mode::ActionEditor => render_action_editor_overlay(app, frame, frame.area()),
         Mode::Terminal => {}
@@ -620,6 +623,49 @@ mod tests {
             Some(app.palette.accent)
         );
         assert!(!app.view.tab_hit_areas.is_empty());
+    }
+
+    #[test]
+    fn top_navigation_reserves_right_side_controls_after_workspace_tabs() {
+        let mut app = crate::app::state::AppState::test_new();
+        app.sidebar_top_navigation = true;
+        app.workspaces = vec![
+            Workspace::test_new("space 1"),
+            Workspace::test_new("space 2"),
+            Workspace::test_new("space 3"),
+        ];
+        app.active = Some(0);
+        app.selected = 0;
+        app.mode = Mode::Terminal;
+
+        compute_view(&mut app, Rect::new(0, 0, 80, 20));
+        let controls = top_navigation_areas(app.view.workspace_tab_bar_rect);
+        let last_workspace = app.view.workspace_card_areas.last().unwrap().rect;
+
+        assert!(
+            last_workspace.x + last_workspace.width
+                <= controls.workspace_tabs.x + controls.workspace_tabs.width
+        );
+        assert!(controls.workspace_tabs.x + controls.workspace_tabs.width < controls.actions.x);
+        assert!(controls.actions.x + controls.actions.width < controls.settings.x);
+        assert!(controls.settings.x + controls.settings.width < controls.new_workspace.x);
+
+        let backend = TestBackend::new(80, 20);
+        let mut terminal = Terminal::new(backend).unwrap();
+        terminal.draw(|frame| render(&app, frame)).unwrap();
+        let buffer = terminal.backend().buffer();
+        assert_eq!(
+            buffer_row_text(buffer, controls.actions, controls.actions.y),
+            "actions"
+        );
+        assert_eq!(
+            buffer_row_text(buffer, controls.settings, controls.settings.y),
+            "settings"
+        );
+        assert_eq!(
+            buffer_row_text(buffer, controls.new_workspace, controls.new_workspace.y),
+            "+"
+        );
     }
 
     #[test]
