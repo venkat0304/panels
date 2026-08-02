@@ -281,6 +281,31 @@ pub(crate) fn agent_panel_entries(app: &AppState) -> Vec<AgentPanelEntry> {
     }
 }
 
+/// Count agent rows without allocating the labels needed for rendering.
+/// Scroll metrics are queried frequently by drawing and mouse hit-testing, so
+/// building a full `AgentPanelEntry` vector here creates avoidable work.
+pub(crate) fn agent_panel_entry_count(app: &AppState) -> usize {
+    let count_workspace = |ws: &crate::workspace::Workspace| {
+        ws.tabs
+            .iter()
+            .flat_map(|tab| tab.panes.values())
+            .filter(|pane| {
+                app.terminals
+                    .get(&pane.attached_terminal_id)
+                    .is_some_and(|terminal| terminal.effective_agent_label().is_some())
+            })
+            .count()
+    };
+
+    match app.agent_panel_scope {
+        AgentPanelScope::CurrentWorkspace => agent_panel_current_workspace_idx(app)
+            .and_then(|idx| app.workspaces.get(idx))
+            .map(count_workspace)
+            .unwrap_or(0),
+        AgentPanelScope::AllWorkspaces => app.workspaces.iter().map(count_workspace).sum(),
+    }
+}
+
 fn truncate_text(text: &str, max_width: usize) -> String {
     let len = text.chars().count();
     if len <= max_width {
@@ -445,7 +470,7 @@ fn agent_panel_visible_count(area: Rect) -> usize {
 
 pub(crate) fn agent_panel_scroll_metrics(app: &AppState, area: Rect) -> crate::pane::ScrollMetrics {
     let viewport_rows = agent_panel_visible_count(area);
-    let total_rows = agent_panel_entries(app).len();
+    let total_rows = agent_panel_entry_count(app);
     let max_offset_from_bottom = total_rows.saturating_sub(viewport_rows);
     let offset_from_bottom = total_rows
         .saturating_sub(app.agent_panel_scroll)
@@ -458,8 +483,10 @@ pub(crate) fn agent_panel_scroll_metrics(app: &AppState, area: Rect) -> crate::p
     }
 }
 
-pub(crate) fn agent_panel_scrollbar_rect(app: &AppState, area: Rect) -> Option<Rect> {
-    let metrics = agent_panel_scroll_metrics(app, area);
+fn agent_panel_scrollbar_rect_for_metrics(
+    area: Rect,
+    metrics: crate::pane::ScrollMetrics,
+) -> Option<Rect> {
     let body = agent_panel_body_rect(area, true);
     (should_show_scrollbar(metrics) && body.width > 0 && body.height > 0).then_some(Rect::new(
         area.x + area.width.saturating_sub(1),
@@ -467,6 +494,11 @@ pub(crate) fn agent_panel_scrollbar_rect(app: &AppState, area: Rect) -> Option<R
         1,
         body.height,
     ))
+}
+
+pub(crate) fn agent_panel_scrollbar_rect(app: &AppState, area: Rect) -> Option<Rect> {
+    let metrics = agent_panel_scroll_metrics(app, area);
+    agent_panel_scrollbar_rect_for_metrics(area, metrics)
 }
 
 pub(crate) fn compute_workspace_card_areas(
@@ -948,8 +980,16 @@ fn render_agent_detail(app: &AppState, frame: &mut Frame, area: Rect) {
     }
 
     let details = agent_panel_entries(app);
-    let metrics = agent_panel_scroll_metrics(app, area);
-    let scrollbar_rect = agent_panel_scrollbar_rect(app, area);
+    let viewport_rows = agent_panel_visible_count(area);
+    let total_rows = details.len();
+    let metrics = crate::pane::ScrollMetrics {
+        offset_from_bottom: total_rows
+            .saturating_sub(app.agent_panel_scroll)
+            .saturating_sub(viewport_rows),
+        max_offset_from_bottom: total_rows.saturating_sub(viewport_rows),
+        viewport_rows,
+    };
+    let scrollbar_rect = agent_panel_scrollbar_rect_for_metrics(area, metrics);
     let body = agent_panel_body_rect(area, should_show_scrollbar(metrics));
     if body == Rect::default() {
         return;
@@ -1226,12 +1266,16 @@ mod tests {
         app.agent_panel_scope = AgentPanelScope::AllWorkspaces;
 
         let entries = agent_panel_entries(&app);
+        assert_eq!(agent_panel_entry_count(&app), entries.len());
         assert_eq!(entries[0].primary_label, "one");
         assert!(entries[0].primary_tab_label.is_none());
         assert_eq!(entries[0].agent_label.as_deref(), Some("pi"));
         assert_eq!(entries[1].primary_label, "two");
         assert_eq!(entries[1].primary_tab_label.as_deref(), Some("logs"));
         assert_eq!(entries[1].agent_label.as_deref(), Some("claude"));
+
+        app.agent_panel_scope = AgentPanelScope::CurrentWorkspace;
+        assert_eq!(agent_panel_entry_count(&app), 1);
     }
 
     #[test]

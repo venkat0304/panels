@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Updated the vendored `libghostty-vt` terminal engine, regenerated its Rust bindings, and moved all build jobs to Zig 0.16.0, restoring compatibility with current macOS SDKs.
+- Fixed Kitty graphics setup passing the wrong pointer type while disabling temporary-file image loading.
+- Reduced repeated agent-panel allocations during redraw and removed an unused agent detail field.
+
 ### Added
 - Added `ui.prompt_new_tab_name = false` for creating new tabs immediately with generated names instead of opening the rename dialog.
 - Added optional `keys.edit_scrollback` to open the focused pane's retained scrollback in `$EDITOR` inside a temporary zoomed pane.

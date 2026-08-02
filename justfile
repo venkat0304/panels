@@ -32,6 +32,10 @@ build:
 build-libghostty-vt:
     scripts/build_vendored_libghostty_vt.sh
 
+# Regenerate Rust bindings after updating the vendored libghostty-vt headers
+generate-ghostty-bindings:
+    scripts/generate_ghostty_bindings.sh
+
 # Check that public docs and changelog have been finalized from docs/next before release
 release-docs-check:
     @for file in README.md CONFIGURATION.md INTEGRATIONS.md SOCKET_API.md CHANGELOG.md; do \

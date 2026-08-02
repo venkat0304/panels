@@ -6,7 +6,7 @@ use ratatui::{
     Frame,
 };
 
-use super::sidebar::{agent_panel_entries, AgentPanelEntry};
+use super::sidebar::{agent_panel_entries, agent_panel_entry_count, AgentPanelEntry};
 use super::status::{agent_icon, state_dot};
 use crate::app::state::{Palette, ToastKind, ToastNotification};
 use crate::app::AppState;
@@ -86,7 +86,8 @@ pub(crate) fn mobile_switcher_areas(app: &AppState) -> MobileSwitcherAreas {
 }
 
 pub(crate) fn mobile_switcher_max_scroll_for_height(app: &AppState, viewport_height: u16) -> usize {
-    mobile_switcher_content_height(app).saturating_sub(viewport_height as usize)
+    mobile_switcher_content_height(app, agent_panel_entry_count(app))
+        .saturating_sub(viewport_height as usize)
 }
 
 pub(crate) fn mobile_switcher_workspace_doc_range(idx: usize) -> std::ops::Range<usize> {
@@ -376,14 +377,14 @@ fn render_close_button(app: &AppState, frame: &mut Frame, area: Rect) {
     }
 }
 
-fn mobile_switcher_content_height(app: &AppState) -> usize {
+fn mobile_switcher_content_height(app: &AppState, agent_count: usize) -> usize {
     let spaces_h = 2 + app.workspaces.len() * 2;
     let tabs_h = app
         .active
         .and_then(|idx| app.workspaces.get(idx))
         .map(|ws| 2 + ws.tabs.len())
         .unwrap_or(0);
-    let agents_h = 1 + agent_panel_entries(app).len() * 2;
+    let agents_h = 1 + agent_count * 2;
     let menu_h = 1 + app.global_menu_labels().len();
     spaces_h + tabs_h + agents_h + menu_h
 }
@@ -394,7 +395,8 @@ fn render_mobile_switcher_content(app: &AppState, frame: &mut Frame, viewport: R
     }
 
     let p = &app.palette;
-    let total_height = mobile_switcher_content_height(app);
+    let entries = agent_panel_entries(app);
+    let total_height = mobile_switcher_content_height(app, entries.len());
     render_left_scrollbar(
         frame,
         viewport,
@@ -527,7 +529,6 @@ fn render_mobile_switcher_content(app: &AppState, frame: &mut Frame, viewport: R
         ws.focused_pane_id()
             .map(|pane_id| (ws_idx, ws.active_tab, pane_id))
     });
-    let entries = agent_panel_entries(app);
     render_section_title_at(
         frame,
         viewport,

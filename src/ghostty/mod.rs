@@ -351,7 +351,7 @@ struct WritePtyCallbackState {
 }
 
 unsafe extern "C" fn write_pty_trampoline(
-    _terminal: ffi::GhosttyTerminal_ptr,
+    _terminal: ffi::GhosttyTerminal,
     userdata: *mut c_void,
     data: *const u8,
     len: usize,
@@ -478,21 +478,26 @@ pub fn encode_focus(event: FocusEvent) -> Result<Vec<u8>, Error> {
 }
 
 pub struct Terminal {
-    raw: ffi::GhosttyTerminal_ptr,
+    raw: ffi::GhosttyTerminal,
     write_pty_callback: Option<Box<WritePtyCallbackState>>,
 }
 
 impl Terminal {
-    pub fn new(cols: u16, rows: u16, max_scrollback: usize) -> Result<Self, Error> {
+    pub fn new(cols: u16, rows: u16, scrollback_limit_bytes: usize) -> Result<Self, Error> {
         let mut raw = ptr::null_mut();
-        let options = ffi::GhosttyTerminalOptions {
-            cols,
-            rows,
-            max_scrollback,
-        };
-        // SAFETY: valid out pointer and options, null allocator means default allocator.
+        // SAFETY: valid out pointer and dimensions, null allocator means default allocator.
         unsafe {
-            ffi::ghostty_terminal_new(ptr::null(), &mut raw, options).into_result()?;
+            ffi::ghostty_terminal_new(ptr::null(), &mut raw, cols, rows).into_result()?;
+            let result = ffi::ghostty_terminal_set(
+                raw,
+                ffi::GhosttyTerminalOption_GHOSTTY_TERMINAL_OPT_SCROLLBACK_MAX_BYTES,
+                (&scrollback_limit_bytes as *const usize).cast(),
+            )
+            .into_result();
+            if let Err(error) = result {
+                ffi::ghostty_terminal_free(raw);
+                return Err(error);
+            }
         }
         Ok(Self {
             raw,
@@ -541,7 +546,7 @@ impl Terminal {
             ffi::ghostty_terminal_set(
                 self.raw,
                 ffi::GhosttyTerminalOption_GHOSTTY_TERMINAL_OPT_KITTY_IMAGE_MEDIUM_TEMP_FILE,
-                (&disable_medium as *const bool).cast(),
+                ptr::null(),
             )
             .into_result()?;
             ffi::ghostty_terminal_set(
@@ -784,7 +789,7 @@ impl Terminal {
             end: end_ref,
             rectangle,
         };
-        let mut formatter: ffi::GhosttyFormatter_ptr = ptr::null_mut();
+        let mut formatter: ffi::GhosttyFormatter = ptr::null_mut();
         let options = ffi::GhosttyFormatterTerminalOptions {
             size: mem::size_of::<ffi::GhosttyFormatterTerminalOptions>(),
             emit: format.as_raw(),
@@ -1038,7 +1043,7 @@ impl Terminal {
         }))
     }
 
-    fn raw(&self) -> ffi::GhosttyTerminal_ptr {
+    fn raw(&self) -> ffi::GhosttyTerminal {
         self.raw
     }
 }
@@ -1259,7 +1264,7 @@ fn grid_ref_hyperlink_uri(grid_ref: &ffi::GhosttyGridRef) -> Result<Option<Strin
 }
 
 pub struct RenderState {
-    raw: ffi::GhosttyRenderState_ptr,
+    raw: ffi::GhosttyRenderState,
 }
 
 impl RenderState {
@@ -1374,7 +1379,7 @@ impl RenderState {
             ffi::ghostty_render_state_get(
                 self.raw,
                 ffi::GhosttyRenderStateData_GHOSTTY_RENDER_STATE_DATA_ROW_ITERATOR,
-                (&mut iterator.raw as *mut ffi::GhosttyRenderStateRowIterator_ptr).cast(),
+                (&mut iterator.raw as *mut ffi::GhosttyRenderStateRowIterator).cast(),
             )
             .into_result()?;
         }
@@ -1417,7 +1422,7 @@ impl Drop for RenderState {
 }
 
 pub struct KeyEvent {
-    raw: ffi::GhosttyKeyEvent_ptr,
+    raw: ffi::GhosttyKeyEvent,
 }
 
 impl KeyEvent {
@@ -1457,7 +1462,7 @@ impl Drop for KeyEvent {
 }
 
 pub struct KeyEncoder {
-    raw: ffi::GhosttyKeyEncoder_ptr,
+    raw: ffi::GhosttyKeyEncoder,
 }
 
 impl KeyEncoder {
@@ -1488,7 +1493,7 @@ impl Drop for KeyEncoder {
 }
 
 pub struct MouseEvent {
-    raw: ffi::GhosttyMouseEvent_ptr,
+    raw: ffi::GhosttyMouseEvent,
 }
 
 impl MouseEvent {
@@ -1528,7 +1533,7 @@ impl Drop for MouseEvent {
 }
 
 pub struct MouseEncoder {
-    raw: ffi::GhosttyMouseEncoder_ptr,
+    raw: ffi::GhosttyMouseEncoder,
 }
 
 impl MouseEncoder {
@@ -1603,7 +1608,7 @@ fn encode_with_retry(
 }
 
 pub struct RowIterator {
-    raw: ffi::GhosttyRenderStateRowIterator_ptr,
+    raw: ffi::GhosttyRenderStateRowIterator,
 }
 
 impl RowIterator {
@@ -1663,7 +1668,7 @@ impl<'a> RowIter<'a> {
             ffi::ghostty_render_state_row_get(
                 self.iterator.raw,
                 ffi::GhosttyRenderStateRowData_GHOSTTY_RENDER_STATE_ROW_DATA_CELLS,
-                (&mut cells.raw as *mut ffi::GhosttyRenderStateRowCells_ptr).cast(),
+                (&mut cells.raw as *mut ffi::GhosttyRenderStateRowCells).cast(),
             )
             .into_result()?;
         }
@@ -1672,7 +1677,7 @@ impl<'a> RowIter<'a> {
 }
 
 pub struct RowCells {
-    raw: ffi::GhosttyRenderStateRowCells_ptr,
+    raw: ffi::GhosttyRenderStateRowCells,
 }
 
 impl RowCells {

@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use crate::detect::{Agent, AgentState};
+use crate::detect::AgentState;
 use crate::layout::PaneId;
 use crate::terminal::{TerminalId, TerminalState};
 
@@ -13,8 +13,6 @@ pub struct PaneDetail {
     pub tab_label: String,
     pub label: String,
     pub agent_label: String,
-    #[allow(dead_code)]
-    pub agent: Option<Agent>,
     pub state: AgentState,
     pub seen: bool,
     pub custom_status: Option<String>,
@@ -43,7 +41,6 @@ impl Tab {
                     tab_label: self.display_name(),
                     label: agent_label.clone(),
                     agent_label,
-                    agent: terminal.effective_known_agent(),
                     state: terminal.state,
                     seen: pane.seen,
                     custom_status: terminal.effective_custom_status().map(str::to_string),
@@ -104,7 +101,6 @@ mod tests {
     use ratatui::layout::Direction;
 
     use super::*;
-    use crate::detect::Agent;
 
     fn terminal_for_pane(ws: &Workspace, pane_id: PaneId) -> TerminalState {
         TerminalState::new(ws.terminal_id(pane_id).unwrap().clone(), "/tmp".into())
@@ -202,14 +198,14 @@ mod tests {
         let labels: Vec<_> = ws
             .pane_details(&terminals)
             .into_iter()
-            .map(|detail| (detail.label, detail.agent_label, detail.agent))
+            .map(|detail| (detail.label, detail.agent_label))
             .collect();
 
         assert_eq!(
             labels,
             vec![
-                ("main·pi".into(), "pi".into(), Some(Agent::Pi)),
-                ("review·claude".into(), "claude".into(), Some(Agent::Claude)),
+                ("main·pi".into(), "pi".into()),
+                ("review·claude".into(), "claude".into()),
             ]
         );
     }
