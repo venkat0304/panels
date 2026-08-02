@@ -1,11 +1,11 @@
 {
-  "version": "0.5.13",
-  "protocol": 5,
-  "notes": "### Fixed\n- In-app update check now works. The hardcoded `panels.dev/latest.json` URL was returning 404 for every user; it's been repointed at the fork's own manifest hosted via `raw.githubusercontent.com/venkat0304/panels/master/website/latest.json`. The `panels update` CLI now resolves a real release and the menu surfaces the `update ready` entry when one is published.\n- Repaired `website/latest.json` after a previous PR merge corrupted it into a TypeScript-schema placeholder. The file is now valid JSON, version-current, and points at the fork's GitHub Release assets instead of the upstream's URLs.",
+  "version": "0.5.14",
+  "protocol": 6,
+  "notes": "### Added\n- Added optional top navigation through `sidebar.top_navigation` and the Sidebar settings screen. Spaces appear as horizontal tabs, the active space is highlighted, and its numbered terminal tabs remain on the row below. Right-aligned **Actions**, **Settings**, and **+** controls run or create actions, open settings, and create spaces.\n- Added convenient `panels start`, `panels stop`, `panels restart`, and `panels upgrade` commands. Compatible upgrades can be installed from a managed pane without stopping its server; protocol-changing upgrades still require detaching first.\n\n### Changed\n- The Actions strip now reserves space at the bottom of the agents section, preventing long agent lists from overlapping it.\n- Reduced repeated agent-panel allocations and redundant aggregate work during redraw, improving responsiveness with many agents.\n- Updated the vendored `libghostty-vt` terminal engine, regenerated its Rust bindings, and moved all build jobs to Zig 0.16.0, restoring compatibility with current macOS SDKs.\n\n### Fixed\n- Top-navigation changes made from the Settings screen now persist to `config.toml`.\n- Server lifecycle commands now preserve their output contract and wait for both sockets to shut down completely, preventing `panels start` and `panels restart` from timing out immediately after a stop.\n- Fixed Kitty graphics setup passing the wrong pointer type while disabling temporary-file image loading.\n\n### Breaking Changes\n- The client/server protocol is now version 6. Stop the running Panels server before upgrading from v0.5.13, then start it again with the new binary.",
   "assets": {
-    "linux-x86_64": "https://github.com/venkat0304/panels/releases/download/v0.5.13/panels-linux-x86_64",
-    "linux-aarch64": "https://github.com/venkat0304/panels/releases/download/v0.5.13/panels-linux-aarch64",
-    "macos-x86_64": "https://github.com/venkat0304/panels/releases/download/v0.5.13/panels-macos-x86_64",
-    "macos-aarch64": "https://github.com/venkat0304/panels/releases/download/v0.5.13/panels-macos-aarch64"
+    "linux-x86_64": "https://github.com/venkat0304/panels/releases/download/v0.5.14/panels-linux-x86_64",
+    "linux-aarch64": "https://github.com/venkat0304/panels/releases/download/v0.5.14/panels-linux-aarch64",
+    "macos-x86_64": "https://github.com/venkat0304/panels/releases/download/v0.5.14/panels-macos-x86_64",
+    "macos-aarch64": "https://github.com/venkat0304/panels/releases/download/v0.5.14/panels-macos-aarch64"
   }
 }

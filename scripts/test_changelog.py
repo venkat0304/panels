@@ -69,10 +69,10 @@ class ChangelogScriptTests(unittest.TestCase):
         self.assertEqual(
             manifest["assets"],
             {
-                "linux-x86_64": "https://github.com/ogulcancelik/panels/releases/download/v0.1.1/panels-linux-x86_64",
-                "linux-aarch64": "https://github.com/ogulcancelik/panels/releases/download/v0.1.1/panels-linux-aarch64",
-                "macos-x86_64": "https://github.com/ogulcancelik/panels/releases/download/v0.1.1/panels-macos-x86_64",
-                "macos-aarch64": "https://github.com/ogulcancelik/panels/releases/download/v0.1.1/panels-macos-aarch64",
+                "linux-x86_64": "https://github.com/venkat0304/panels/releases/download/v0.1.1/panels-linux-x86_64",
+                "linux-aarch64": "https://github.com/venkat0304/panels/releases/download/v0.1.1/panels-linux-aarch64",
+                "macos-x86_64": "https://github.com/venkat0304/panels/releases/download/v0.1.1/panels-macos-x86_64",
+                "macos-aarch64": "https://github.com/venkat0304/panels/releases/download/v0.1.1/panels-macos-aarch64",
             },
         )
 

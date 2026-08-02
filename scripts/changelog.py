@@ -11,11 +11,13 @@ from datetime import date
 from pathlib import Path
 from typing import Any
 
-DEFAULT_LIVE_MANIFEST_URL = "https://panels.dev/latest.json"
+DEFAULT_LIVE_MANIFEST_URL = (
+    "https://raw.githubusercontent.com/venkat0304/panels/master/website/latest.json"
+)
 
 SECTION_RE = re.compile(r"^##\s+(?:\[(?P<bracketed>[^\]]+)\]|(?P<plain>.+?))\s*$", re.MULTILINE)
 VERSION_WITH_DATE_RE = re.compile(r"^(?P<version>.+?)\s+-\s+\d{4}-\d{2}-\d{2}$")
-DEFAULT_RELEASE_REPO = "ogulcancelik/panels"
+DEFAULT_RELEASE_REPO = "venkat0304/panels"
 DEFAULT_LATEST_JSON_PATH = Path("website/latest.json")
 PROTOCOL_SOURCE_PATH = Path("src/server/protocol.rs")
 ASSET_TARGETS = (
