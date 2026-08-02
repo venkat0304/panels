@@ -2,23 +2,50 @@
 
 ## Unreleased
 
-- Added convenient `panels start`, `panels stop`, `panels restart`, and `panels upgrade` commands. Compatible upgrades can now be installed from a managed pane without stopping its server; protocol-changing upgrades still require detaching first.
-
-- Updated the vendored `libghostty-vt` terminal engine, regenerated its Rust bindings, and moved all build jobs to Zig 0.16.0, restoring compatibility with current macOS SDKs.
-- Fixed Kitty graphics setup passing the wrong pointer type while disabling temporary-file image loading.
-- Reduced repeated agent-panel allocations during redraw and removed an unused agent detail field.
-
 ### Added
-- Added `ui.prompt_new_tab_name = false` for creating new tabs immediately with generated names instead of opening the rename dialog.
-- Added optional `keys.edit_scrollback` to open the focused pane's retained scrollback in `$EDITOR` inside a temporary zoomed pane.
+- Added optional top navigation through `sidebar.top_navigation` and the Sidebar settings screen. Spaces appear as horizontal tabs, the active space is highlighted, and its numbered terminal tabs remain on the row below. Right-aligned **Actions**, **Settings**, and **+** controls run or create actions, open settings, and create spaces.
+- Added convenient `panels start`, `panels stop`, `panels restart`, and `panels upgrade` commands. Compatible upgrades can be installed from a managed pane without stopping its server; protocol-changing upgrades still require detaching first.
 
 ### Changed
-- Renamed the focused pane fullscreen keybinding to `keys.zoom`; `keys.fullscreen` remains supported as a legacy alias.
+- The Actions strip now reserves space at the bottom of the agents section, preventing long agent lists from overlapping it.
+- Reduced repeated agent-panel allocations and redundant aggregate work during redraw, improving responsiveness with many agents.
+- Updated the vendored `libghostty-vt` terminal engine, regenerated its Rust bindings, and moved all build jobs to Zig 0.16.0, restoring compatibility with current macOS SDKs.
 
 ### Fixed
-- GitHub Copilot is now correctly detected when its process name is `copilot`.
-- Integration installs now respect `PI_CODING_AGENT_DIR`, `CLAUDE_CONFIG_DIR`, and `CODEX_HOME` when choosing Pi, Claude Code, and Codex config paths.
-- Split pane resize hit areas no longer overlap the first content column or row, making text selection work from the start of right and bottom panes.
+- Top-navigation changes made from the Settings screen now persist to `config.toml`.
+- Server lifecycle commands now preserve their output contract and wait for both sockets to shut down completely, preventing `panels start` and `panels restart` from timing out immediately after a stop.
+- Fixed Kitty graphics setup passing the wrong pointer type while disabling temporary-file image loading.
+
+### Breaking Changes
+- The client/server protocol is now version 6. Stop the running Panels server before upgrading from v0.5.13, then start it again with the new binary.
+
+## [0.5.13] - 2026-05-20
+
+### Fixed
+- In-app update check works again. `UPDATE_MANIFEST_URL` was pointing at `https://panels.dev/latest.json`, which now returns 404 — every install was silently failing the version check and the `update ready` menu entry never appeared. Repointed to the fork-hosted manifest at `https://raw.githubusercontent.com/venkat0304/panels/master/website/latest.json` (no separate domain required). Both the auto-update background check and `panels update` resolve normally now.
+- Repaired `website/latest.json`. A previous PR merge had committed a TypeScript-schema placeholder where valid JSON should be — which is why the release workflow's `update-latest-json` job has been failing on every recent tag. The file is now valid JSON, pinned at the current version, with asset URLs pointing at `venkat0304/panels` releases instead of upstream.
+
+## [0.5.12] - 2026-05-20
+
+### Added
+- New **sidebar** tab in Settings with three toggles: hide the entire actions panel, hide the entire files panel, and hide the per-workspace branch row. Stored under `[sidebar]` in `config.toml` (`hide_actions`, `hide_files`, `hide_branch`). When a panel is hidden the agent detail area expands to fill the reclaimed space.
+
+## [0.5.11] - 2026-05-20
+
+### Changed
+- Sidebar header: `menu` and the new-space button moved from the bottom of the spaces section to the top, sitting on the same row as the `spaces` label. The `new` text label is now a `+` icon for both the spaces section and the actions panel header.
+- README install section rewritten to lead with the `curl | sh` one-liner; build-from-source moved to a secondary section.
+- Canonical repo URLs updated from `venkat0304/herdr` to `venkat0304/panels` in `Cargo.toml`, `install.sh`, and the README (the GitHub repo was renamed; old URLs still redirect).
+
+## [0.5.10] - 2026-05-20
+
+### Added
+- One-line installer script (`install.sh`) and `curl | sh` install command in the README — fetches the prebuilt binary for the host OS/arch from the latest GitHub release instead of requiring a source build.
+- Image preview now opens any format. The filesystem panel's `render-image` subcommand tries an external terminal viewer first, then in-pane Kitty graphics (PNG fast path + RGBA decode for jpeg/gif/webp/bmp/tiff/ico via the `image` crate), and finally falls back to the OS default viewer so images always display.
+- Filesystem panel improvements (in-progress branch work): new actions, modal/mouse/sidebar handling, persistence and UI dialogs.
+
+### Fixed
+- Opening an image in the filesystem panel no longer leaves a blank pane when the Kitty graphics relay is disabled or the format isn't PNG.
 
 ## [0.5.9] - 2026-05-15
 

@@ -31,7 +31,7 @@ One command. macOS (arm64/x86_64) and Linux (arm64/x86_64) are supported.
 curl -fsSL https://raw.githubusercontent.com/venkat0304/panels/master/install.sh | sh
 ```
 
-That drops `panels` into `~/.local/bin/panels`. Override the install dir with `PREFIX=/usr/local` (use `sudo` for system dirs), or pin a release with `PANELS_VERSION=v0.5.11`.
+That drops `panels` into `~/.local/bin/panels`. Override the install dir with `PREFIX=/usr/local` (use `sudo` for system dirs), or pin a release with `PANELS_VERSION=v0.5.14`.
 
 Then run it:
 
@@ -56,7 +56,17 @@ cp target/release/panels ~/.local/bin/
 panels
 ```
 
-By default `panels` launches or attaches to one background session server. Press `ctrl+b q` to detach the client — agents keep running. Use `panels server stop` to stop the default server, or `--no-session` for single-process mode.
+By default `panels` launches or attaches to one background session server. Press `ctrl+b q` to detach the client — agents keep running. Use the lifecycle commands from your outer shell when you need to replace that server:
+
+```bash
+panels stop       # stop the server and its panes
+panels start      # start the server without attaching
+panels restart    # stop, wait, and start again
+panels             # attach to the running server
+panels upgrade    # install the latest release (alias: panels update)
+```
+
+`panels restart` must run outside a managed pane because stopping the server terminates its panes. Use `--no-session` for single-process mode.
 
 Named sessions are separate persistent servers, each with its own panes, tabs, workspaces, and state, sharing one global config file:
 
@@ -76,6 +86,8 @@ First steps inside the app:
 5. watch the sidebar for blocked / working / done states
 
 On first run panels shows a short onboarding flow. Fresh sessions start in **navigate mode**; restored sessions land in terminal mode.
+
+Enable **Settings → Sidebar → top navigation** to replace the left sidebar with horizontal space tabs. The selected space is highlighted, its numbered tabs remain directly below, and **Actions**, **Settings**, and **+** stay available at the right edge of the top row.
 
 ## agent awareness
 

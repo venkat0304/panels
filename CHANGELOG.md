@@ -2,6 +2,23 @@
 
 ## Unreleased
 
+### Added
+- Added optional top navigation through `sidebar.top_navigation` and the Sidebar settings screen. Spaces appear as horizontal tabs, the active space is highlighted, and its numbered terminal tabs remain on the row below. Right-aligned **Actions**, **Settings**, and **+** controls run or create actions, open settings, and create spaces.
+- Added convenient `panels start`, `panels stop`, `panels restart`, and `panels upgrade` commands. Compatible upgrades can be installed from a managed pane without stopping its server; protocol-changing upgrades still require detaching first.
+
+### Changed
+- The Actions strip now reserves space at the bottom of the agents section, preventing long agent lists from overlapping it.
+- Reduced repeated agent-panel allocations and redundant aggregate work during redraw, improving responsiveness with many agents.
+- Updated the vendored `libghostty-vt` terminal engine, regenerated its Rust bindings, and moved all build jobs to Zig 0.16.0, restoring compatibility with current macOS SDKs.
+
+### Fixed
+- Top-navigation changes made from the Settings screen now persist to `config.toml`.
+- Server lifecycle commands now preserve their output contract and wait for both sockets to shut down completely, preventing `panels start` and `panels restart` from timing out immediately after a stop.
+- Fixed Kitty graphics setup passing the wrong pointer type while disabling temporary-file image loading.
+
+### Breaking Changes
+- The client/server protocol is now version 6. Stop the running Panels server before upgrading from v0.5.13, then start it again with the new binary.
+
 ## [0.5.13] - 2026-05-20
 
 ### Fixed

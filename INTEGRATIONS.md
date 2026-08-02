@@ -55,6 +55,14 @@ this writes the bundled pi extension to:
 ~/.pi/agent/extensions/panels-agent-state.ts
 ```
 
+if `PI_CODING_AGENT_DIR` is set, panels uses that agent directory instead and writes to:
+
+```text
+$PI_CODING_AGENT_DIR/extensions/panels-agent-state.ts
+```
+
+`~` is expanded in `PI_CODING_AGENT_DIR`.
+
 pi is the cleanest integration. it already has an authoritative hook model, so panels can get direct state reports over the socket api without guessing as much from the terminal.
 
 bundled source: [`src/integration/assets/pi/panels-agent-state.ts`](./src/integration/assets/pi/panels-agent-state.ts)
@@ -65,11 +73,7 @@ uninstall:
 panels integration uninstall pi
 ```
 
-this removes:
-
-```text
-~/.pi/agent/extensions/panels-agent-state.ts
-```
+this removes the same extension path panels would install, using `PI_CODING_AGENT_DIR` when it is set.
 
 ## claude code
 
@@ -83,6 +87,8 @@ this:
 
 - writes the hook script to `~/.claude/hooks/panels-agent-state.sh`
 - updates `~/.claude/settings.json`
+
+if `CLAUDE_CONFIG_DIR` is set, panels uses that directory instead, for example `$CLAUDE_CONFIG_DIR/hooks/panels-agent-state.sh` and `$CLAUDE_CONFIG_DIR/settings.json`. `~` is expanded in `CLAUDE_CONFIG_DIR`.
 
 bundled source: [`src/integration/assets/claude/panels-agent-state.sh`](./src/integration/assets/claude/panels-agent-state.sh)
 
@@ -109,10 +115,7 @@ uninstall:
 panels integration uninstall claude
 ```
 
-this:
-
-- removes `~/.claude/hooks/panels-agent-state.sh`
-- removes panels-owned hook entries from `~/.claude/settings.json`
+this removes the same hook path and settings entries panels would install, using `CLAUDE_CONFIG_DIR` when it is set.
 
 ## codex
 
@@ -128,6 +131,8 @@ this:
 - updates `~/.codex/hooks.json`
 - ensures `hooks = true` under `[features]` in `~/.codex/config.toml`
 - migrates the deprecated top-level `[features] codex_hooks = true` setting to `hooks = true`
+
+if `CODEX_HOME` is set, panels uses that directory instead, for example `$CODEX_HOME/panels-agent-state.sh`, `$CODEX_HOME/hooks.json`, and `$CODEX_HOME/config.toml`. `~` is expanded in `CODEX_HOME`.
 
 bundled source: [`src/integration/assets/codex/panels-agent-state.sh`](./src/integration/assets/codex/panels-agent-state.sh)
 
@@ -153,9 +158,9 @@ panels integration uninstall codex
 
 this:
 
-- removes `~/.codex/panels-agent-state.sh`
-- removes panels-owned hook entries from `~/.codex/hooks.json`
-- intentionally leaves `~/.codex/config.toml` alone
+- removes the same hook path panels would install, using `CODEX_HOME` when it is set
+- removes panels-owned hook entries from the matching `hooks.json`
+- intentionally leaves the matching `config.toml` alone
 
 that last point is deliberate: panels does **not** try to guess whether `hooks = true` is still needed for some other codex hook setup.
 
@@ -203,6 +208,12 @@ this removes:
 ```text
 ~/.config/opencode/plugins/panels-agent-state.js
 ```
+
+## amp
+
+panels does not currently install an Amp plugin.
+
+Amp's public plugin API exposes lifecycle and tool-call hooks, but not passive permission/request-blocked events. A Panels Amp plugin that only reports `idle` and `working` would take hook authority for the pane and mask Panels's existing screen heuristics for Amp `blocked` states. Until Amp exposes permission state as an observable plugin event, Amp remains heuristic-only in Panels.
 
 ## known limitations
 

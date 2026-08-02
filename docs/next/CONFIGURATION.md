@@ -328,12 +328,12 @@ hide_branch = false
 
 | option | default | description |
 |--------|---------|-------------|
-| `sidebar.top_navigation` | `false` | replace the left sidebar with horizontal workspace tabs above the regular tab bar |
+| `sidebar.top_navigation` | `false` | replace the left sidebar with horizontal space tabs above the regular tab bar |
 | `sidebar.hide_actions` | `false` | hide the Actions strip |
 | `sidebar.hide_files` | `false` | hide the Files panel |
 | `sidebar.hide_branch` | `false` | hide branch names in workspace cards |
 
-These options can also be changed from the Sidebar tab in Settings.
+These options can also be changed from the Sidebar tab in Settings. With top navigation enabled, the active space is highlighted on the first row, its numbered tabs appear below, and **Actions**, **Settings**, and **+** remain at the right edge of the first row.
 
 `accent` accepts:
 - named colors like `cyan`, `blue`, `magenta`

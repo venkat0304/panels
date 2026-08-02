@@ -25,22 +25,30 @@ Run many AI coding agents side by side — each in its own real terminal, organi
 
 ## install
 
-Build from source (the supported path for this build):
+One command. macOS (arm64/x86_64) and Linux (arm64/x86_64) are supported.
 
 ```bash
-git clone https://github.com/venkat0304/herdr panels
+curl -fsSL https://raw.githubusercontent.com/venkat0304/panels/master/install.sh | sh
+```
+
+That drops `panels` into `~/.local/bin/panels`. Override the install dir with `PREFIX=/usr/local` (use `sudo` for system dirs), or pin a release with `PANELS_VERSION=v0.5.14`.
+
+Then run it:
+
+```bash
+panels
+```
+
+### build from source
+
+Only needed if you're hacking on panels or installing on an unsupported platform.
+
+```bash
+git clone https://github.com/venkat0304/panels
 cd panels
 cargo build --release
-./target/release/panels
-```
-
-Move the single binary anywhere on your `PATH` and run `panels` from any directory:
-
-```bash
 cp target/release/panels ~/.local/bin/
 ```
-
-Requires Linux or macOS. For prebuilt binaries of the original project, see upstream [herdr releases](https://github.com/ogulcancelik/herdr/releases).
 
 ## quick start
 
@@ -78,6 +86,8 @@ First steps inside the app:
 5. watch the sidebar for blocked / working / done states
 
 On first run panels shows a short onboarding flow. Fresh sessions start in **navigate mode**; restored sessions land in terminal mode.
+
+Enable **Settings → Sidebar → top navigation** to replace the left sidebar with horizontal space tabs. The selected space is highlighted, its numbered tabs remain directly below, and **Actions**, **Settings**, and **+** stay available at the right edge of the top row.
 
 ## agent awareness
 
