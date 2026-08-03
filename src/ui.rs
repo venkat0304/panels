@@ -622,6 +622,12 @@ mod tests {
             buffer[(active.x, active.y)].style().bg,
             Some(app.palette.accent)
         );
+        assert!(buffer_row_text(buffer, active, active.y).contains('●'));
+        assert_eq!(
+            active.x,
+            inactive.x + inactive.width + 1,
+            "workspace tabs should have a visible gutter"
+        );
         assert!(!app.view.tab_hit_areas.is_empty());
     }
 
@@ -656,15 +662,15 @@ mod tests {
         let buffer = terminal.backend().buffer();
         assert_eq!(
             buffer_row_text(buffer, controls.actions, controls.actions.y),
-            "actions"
+            " Actions"
         );
         assert_eq!(
             buffer_row_text(buffer, controls.settings, controls.settings.y),
-            "settings"
+            " Settings"
         );
         assert_eq!(
             buffer_row_text(buffer, controls.new_workspace, controls.new_workspace.y),
-            "+"
+            " +"
         );
     }
 
