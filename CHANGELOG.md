@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+### Changed
+- Polished the optional top navigation with centered, padded workspace tabs, visible gutters, a clear active marker, stronger keyboard selection, clean ellipsis for long names, and matching **Actions**, **Settings**, and **+** buttons.
+
+### Fixed
+- Release manifest publishing now reads assets from `venkat0304/panels` and verifies the raw GitHub updater manifest, so tagged releases reliably become available through `panels upgrade` without a separate website.
+
 ## [0.5.14] - 2026-08-02
 
 ### Added
