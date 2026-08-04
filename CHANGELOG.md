@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## [0.5.15] - 2026-08-03
+
 ### Changed
 - Polished the optional top navigation with centered, padded workspace tabs, visible gutters, a clear active marker, stronger keyboard selection, clean ellipsis for long names, and matching **Actions**, **Settings**, and **+** buttons.
 
